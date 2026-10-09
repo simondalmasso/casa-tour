@@ -1,0 +1,70 @@
+name: Casa Tour reconstruction Studio staging
+on:
+  push:
+    branches: ["feat/reconstruction-workbench-phase1"]
+    paths:
+      - ".github/workflows/reconstruction-staging.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: casa-tour-reconstruction-staging
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify Node/Python contracts
+        run: |
+          npm run validate
+          python3 -m unittest discover -s tests -p "*_test.py" -v
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+      - name: Deploy unique staging Worker, never production
+        id: stage
+        run: |
+          set -euo pipefail
+          NAME="casa-tour-recon-stg-${GITHUB_SHA:0:8}"
+          npx --yes wrangler@4 deploy --name "$NAME" --strict --message "Annotated geometry Studio preview"
+          echo "url=https://${NAME}.simondalmasso44.workers.dev" >> "$GITHUB_OUTPUT"
+      - name: Verify public Studio assets and API
+        env:
+          BASE: ${{ steps.stage.outputs.url }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 20 "$BASE/" -o /tmp/home.html
+          curl -fsSL --max-time 20 "$BASE/studio" -o /tmp/studio.html
+          curl -fsSL --max-time 20 "$BASE/scene-sample.json" -o /tmp/scene.json
+          curl -fsSL --max-time 20 "$BASE/glb-export.js" -o /tmp/glb.js
+          curl -fsSL --max-time 20 "$BASE/api/v1/health" -o /tmp/health.json
+          grep -q "id=\"plan-editor\"" /tmp/studio.html
+          grep -q "Ver GLB externo" /tmp/studio.html
+          grep -q "schemaVersion" /tmp/scene.json
+          grep -q "createGlb" /tmp/glb.js
+          node -e 'const h=require("/tmp/health.json"); if(!h.ok||h.reconstruction!=="not_available")process.exit(1)'
+          echo "Studio staging HTTP contract GREEN"
+      - name: Test published Studio in desktop/mobile browser
+        env:
+          CASA_TOUR_BASE_URL: ${{ steps.stage.outputs.url }}
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node tests/studio-browser-smoke.mjs
+      - name: Upload proof and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: casa-tour-reconstruction-staging
+          path: test-artifacts/
+          if-no-files-found: ignore
+          retention-days: 4
