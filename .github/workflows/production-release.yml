@@ -1,0 +1,95 @@
+name: Casa Tour guarded production release
+on:
+  push:
+    branches: ["ops/cloudflare-release-20261009"]
+    paths:
+      - ".github/workflows/production-release.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: casa-tour-production
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PRODUCTION_URL: https://casa-tour.simondalmasso44.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify release source
+        run: |
+          set -euo pipefail
+          npm run validate
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+      - name: Guard current production against unexpected overwrite
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 20 -D prior.headers -o prior.body "$PRODUCTION_URL/"
+          echo "Production before release: $(wc -c < prior.body | tr -d ' ') bytes"
+          if [ "$(wc -c < prior.body | tr -d ' ')" != 12 ] || ! grep -iq '^content-type: text/plain' prior.headers; then
+            echo "::error::Unexpected Worker already in production; aborting to avoid overwriting an unknown site."
+            exit 1
+          fi
+          echo "Current Worker is the known 12-byte placeholder; safe to proceed."
+      - name: Record previous Cloudflare deployment versions
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deployments list --name casa-tour > previous-deployments.txt
+          echo "Recorded previous worker deployments for rollback"
+      - name: Publish validated Casa Tour to production
+        id: deploy
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --name casa-tour --strict --message "Casa Tour verified mobile-first MVP from GitHub Actions"
+      - name: Validate production API and published web assets
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            if curl -fsSL --max-time 12 "$PRODUCTION_URL/api/v1/health" -o health.json; then
+              if node -e 'const fs=require("fs");const o=JSON.parse(fs.readFileSync("health.json","utf8"));if(o.ok!==true||o.product!=="casa-tour"||o.reconstruction!=="not_available")process.exit(1)'; then
+                break
+              fi
+            fi
+            if [ "$attempt" -eq 20 ]; then echo "::error::Production API health failed"; exit 1; fi
+            sleep 3
+          done
+          curl -fsSL --max-time 20 "$PRODUCTION_URL/" -o index.html
+          curl -fsSL --max-time 20 "$PRODUCTION_URL/embed/demo" -o embed.html
+          curl -fsSL --max-time 20 "$PRODUCTION_URL/mobile.css" -o mobile.css
+          grep -q "hero-model" index.html
+          grep -q "id=\"settings-toggle\"" embed.html
+          grep -q "mobile-first experience" mobile.css -i
+          echo "Production API and static 3D contracts GREEN"
+      - name: Install Playwright and verify real production desktop/mobile
+        env:
+          CASA_TOUR_BASE_URL: ${{ env.PRODUCTION_URL }}
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node tests/browser-smoke.mjs
+      - name: Rollback automatically if release verification failed
+        if: failure() && steps.deploy.outcome == 'success'
+        run: |
+          echo "::warning::Production validation failed; rolling back to previous deployed Worker version."
+          npx --yes wrangler@4 rollback --name casa-tour --message "Automatic rollback due to Casa Tour production verification failure"
+      - name: Upload release verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: casa-tour-production-validation
+          path: |
+            previous-deployments.txt
+            test-artifacts/
+            health.json
+          retention-days: 7
+          if-no-files-found: ignore
