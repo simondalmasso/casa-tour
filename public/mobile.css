@@ -1,0 +1,122 @@
+/* Mobile-first experience layer: architectural object before marketing copy.
+   Desktop and wide tablets deliberately keep the existing editorial layout. */
+@media (max-width: 750px) {
+  .header{height:66px;gap:12px}
+  .brand{font-size:21px}
+  .nav-cta{min-height:42px;white-space:nowrap}
+  .hero{
+    display:grid;grid-template-columns:minmax(0,1fr);
+    gap:0;min-height:0;padding-top:30px;padding-bottom:24px;
+  }
+  .hero-copy{display:contents}
+  .hero .eyebrow{grid-row:1;font-size:9px;letter-spacing:.19em}
+  .hero h1{
+    grid-row:2;max-width:620px;margin:17px 0 15px;
+    font-size:clamp(37px,9.6vw,56px);
+    letter-spacing:-.065em;line-height:1.06;
+  }
+  .hero-art{
+    grid-row:3;width:100%;height:clamp(342px,90vw,480px);
+    max-width:none;margin:0 0 13px;
+    animation:none!important;
+  }
+  .hero-live-wrap{inset:0 0 0;border-radius:12px}
+  .hero-scene-label.left{top:5%;left:5%;font-size:8px}
+  .hero-scene-label.right{display:none}
+  .hero-annotation{display:none}
+  .hero-scene-actions{top:4%;right:4%;gap:6px}
+  .scene-shortcut{padding:10px 12px;min-height:36px;font-size:10px}
+  .scene-caption{
+    display:block;left:5%;bottom:5%;font-size:8px;
+    letter-spacing:.13em;max-width:170px;
+    text-shadow:0 1px 1px #f5fff1;
+  }
+  .hero-copy>p:not(.hero-note){
+    grid-row:4;margin:6px 0 8px;
+    font-size:13px;line-height:1.65;max-width:650px;
+  }
+  .audience-switch{
+    grid-row:5;width:fit-content;margin:11px 0 0;
+  }
+  .hero-actions{
+    grid-row:6;margin-top:13px;display:grid;
+    grid-template-columns:1fr 1fr;gap:8px;
+  }
+  .hero-actions .button{
+    width:auto;min-width:0;min-height:49px;
+    gap:8px;padding:13px 13px;line-height:1.25;
+    font-size:11px;
+  }
+  .hero-note{
+    grid-row:7;max-width:550px;
+    margin:15px 0 0;font-size:10px!important;
+  }
+  .scroll-note{grid-row:8;position:static;margin:20px 0 0}
+  .tour-section{padding:54px 0 42px}
+  .tour-header{margin-bottom:20px}
+  .tour-header h2{font-size:clamp(36px,8.7vw,46px);line-height:1.15;letter-spacing:-.058em}
+  .tour-header-right{margin-top:13px}
+  .tour-header-right p{margin-top:0;line-height:1.65}
+  .tour-shell iframe{height:clamp(430px,112vw,570px);min-height:430px}
+  .tour-shell-top{min-height:51px;height:auto;padding:11px 13px}
+  .tour-shell-top strong{font-size:9px;letter-spacing:.06em}
+  .tour-shell-top>a{font-size:10px}
+  .tour-shell-bottom{gap:10px;padding:12px 14px}
+  .tour-detail{margin-top:17px}
+  .possibilities{padding-top:65px;padding-bottom:70px}
+  .section-flex h2,.intake h2{font-size:clamp(36px,8.7vw,47px);line-height:1.12;letter-spacing:-.065em}
+  .section-flex>p{margin:16px 0 24px;line-height:1.7}
+  .features-grid{gap:10px}
+  .feature-card{padding:20px;min-height:0}
+  .feature-card .feature-icon{
+    position:absolute;top:15px;right:19px;
+    height:auto;font-size:35px;opacity:.8
+  }
+  .feature-card h3{margin:17px 0 8px}
+  .feature-card p{font-size:12px;line-height:1.7}
+  .feature-caption{margin-top:15px}
+  .feature-preview-button{margin-top:12px;min-height:42px}
+  .process{padding:66px 0}
+  .steps{margin-top:29px;gap:0}
+  .step{
+    display:grid;grid-template-columns:35px minmax(0,1fr);
+    gap:0 13px;padding:17px 0;
+    border-bottom:1px solid #cbd4c9;
+  }
+  .step>span{grid-row:span 2;padding-top:2px}
+  .step h3{margin:0 0 5px;font-size:20px}
+  .step p{margin:0;max-width:none;line-height:1.65}
+  .pricing{padding:67px 0}
+  .plan-grid{gap:10px}
+  .plan{padding:23px;min-height:0}
+  .price{margin-top:19px}
+  .plan-rule{margin:18px 0 12px}
+  .plan-action{padding-top:15px;min-height:46px}
+  .intake{padding:67px 0 78px}
+  .intake-inner{gap:22px}
+  .intake-copy>p{margin:18px 0}
+  .footer-top{padding-top:38px;padding-bottom:35px}
+}
+@media(max-width:460px){
+  .top-strip{height:24px;font-size:6px;letter-spacing:.19em}
+  .header{height:65px}
+  .nav-cta{padding:11px 12px;min-height:40px}
+  .hero h1{font-size:clamp(35px,9.6vw,44px)}
+  .hero h1 em{white-space:normal}
+  .hero-art{height:clamp(325px,93vw,420px)}
+  .hero-actions .button{font-size:10px}
+  .tour-shell iframe{height:455px;min-height:455px}
+  .tour-shell-top .tour-lights{display:none}
+  .tour-header h2{font-size:38px}
+  .footer-top{gap:10px}
+}
+@media(max-width:365px){
+  .brand{font-size:19px}
+  .nav-cta{font-size:9px}
+  .hero h1{font-size:35px}
+  .scene-shortcut{font-size:9px;padding:8px 9px}
+  .hero-actions{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  .hero-art,.hero-copy{animation:none!important}
+}

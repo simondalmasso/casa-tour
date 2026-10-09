@@ -5,8 +5,9 @@ const container = document.getElementById("canvas");
 const status = document.getElementById("view-status");
 const hint = document.getElementById("view-hint");
 const error = document.getElementById("render-error");
-const renderer = new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:"high-performance"});
-renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.65));
+const isPhone=window.matchMedia("(max-width:670px)").matches;
+const renderer = new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:isPhone?"low-power":"high-performance"});
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, isPhone?1.2:1.65));
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -19,6 +20,9 @@ scene.fog = new THREE.Fog(0xdce7d9,23,49);
 const camera = new THREE.PerspectiveCamera(42,1,0.06,90);
 camera.position.set(11.5,11,14);
 const controls = new OrbitControls(camera,renderer.domElement);
+// OrbitControls defaults to touch-action:none, trapping vertical page swipes.
+// On phones horizontal drags rotate the house while vertical drags keep page scrolling.
+if(isPhone)renderer.domElement.style.touchAction="pan-y";
 const reduceMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let flight=null, active=true, assembly=null;
 controls.target.set(0,0.6,0);
@@ -33,7 +37,7 @@ controls.update();
 const keyLight=new THREE.DirectionalLight(0xffedcf,3);
 keyLight.position.set(-6,14,8);
 keyLight.castShadow=true;
-keyLight.shadow.mapSize.set(2048,2048);
+keyLight.shadow.mapSize.set(isPhone?1024:2048,isPhone?1024:2048);
 keyLight.shadow.camera.left=-16; keyLight.shadow.camera.right=16;
 keyLight.shadow.camera.top=16; keyLight.shadow.camera.bottom=-16;
 keyLight.shadow.bias=-.00015;
@@ -248,6 +252,26 @@ function setPalette(name){
   notifyParent("CASA_TOUR_PALETTE",{palette:name});
 }
 document.querySelectorAll("[data-palette]").forEach(button=>button.addEventListener("click",()=>setPalette(button.dataset.palette)));
+const settingsToggle=document.getElementById("settings-toggle");
+const settingsPanel=document.getElementById("viewer-settings");
+function setSettingsOpen(open){
+  if(!settingsToggle||!settingsPanel)return;
+  const next=open===true;
+  settingsPanel.classList.toggle("is-open",next);
+  settingsToggle.setAttribute("aria-expanded",String(next));
+  settingsToggle.textContent=next?"✕ Cerrar":"◐ Personalizar";
+}
+settingsToggle?.addEventListener("click",()=>setSettingsOpen(settingsToggle.getAttribute("aria-expanded")!=="true"));
+document.addEventListener("keydown",event=>{
+  if(event.key==="Escape" && settingsToggle?.getAttribute("aria-expanded")==="true"){
+    setSettingsOpen(false);settingsToggle.focus();
+  }
+});
+document.addEventListener("pointerdown",event=>{
+  if(settingsToggle?.getAttribute("aria-expanded")!=="true")return;
+  if(!settingsToggle.contains(event.target)&&!settingsPanel?.contains(event.target))setSettingsOpen(false);
+});
+
 function daylight(hour){
   const daylightAmount=Math.max(.12,Math.sin((hour-6)/16*Math.PI));
   const angle=(hour-7)/14*Math.PI;
@@ -329,7 +353,7 @@ window.addEventListener("message",event=>{
 });
 document.getElementById("share").addEventListener("click",async()=>{
   const shareURL=new URL("/tour/demo",location.origin).href;
-  try{await navigator.clipboard.writeText(shareURL);document.getElementById("share").textContent="Enlace copiado ✓";}
+  try{await navigator.clipboard.writeText(shareURL);document.getElementById("share").textContent="Copiado ✓";}
   catch{window.prompt("Compartí esta URL:",shareURL);}
 });
 const pressed=new Set();

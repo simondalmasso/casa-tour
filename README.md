@@ -52,3 +52,11 @@ Ver [docs/PRODUCT.md](docs/PRODUCT.md) para arquitectura B2B/B2C, evidencias, li
 - `npm run validate` realiza las pruebas sintácticas y de contrato. Un flujo separado `.github/workflows/browser-smoke.yml` comprueba WebGL, controles, consola y vistas escritorio/móvil, subiendo capturas temporales.
 
 **Seguridad y transparencia:** el botón *Ensamblar* es una animación representativa de una maqueta; no corresponde a la construcción real de un inmueble ni avala cotas, superficies o levantamientos.
+
+## Mobile-first (actualización octubre de 2026)
+
+En teléfonos, la **maqueta 3D aparece inmediatamente después del titular**. El visor usa una barra de ambientes, otra de modos y un panel plegable de materiales/sol. Los deslizamientos verticales pueden seguir desplazando la página incluso sobre el canvas; los gestos horizontales permiten manipular la casa. Se reduce resolución interna y sombras para equipos móviles.
+
+Las pruebas de navegador incluyen anchuras de 390 y 320 px, sin overflow horizontal, tests de personalización y capturas reales. Ver [docs/MOBILE_QA.md](docs/MOBILE_QA.md).
+
+El Worker público de Cloudflare observado el 2026-10-09 aún entregaba texto plano (HTTP 200) tanto en `/` como en `/api/v1/health`; **eso NO es este frontend**. El workflow de preview confirmó que faltan `CLOUDFLARE_ACCOUNT_ID` y/o `CLOUDFLARE_API_TOKEN` en Actions secrets. La publicación real continúa pendiente y debe realizarse con staging y rollback.

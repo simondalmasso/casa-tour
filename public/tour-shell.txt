@@ -41,6 +41,76 @@
     .hud .micro-disclaimer{position:absolute;right:22px;bottom:92px;font-size:9px;font-weight:800;letter-spacing:.08em;color:#537359;background:#f9fcf2cf;padding:10px;border-radius:3px}
     .modebar .assembly-launch{background:#e2f1ce;color:#3c673f}
     @media(max-width:670px){.rooms{top:150px;left:10px}.rooms .rooms-title{display:none}.rooms button{min-width:91px;font-size:9px;padding:8px 9px}.hud .micro-disclaimer{right:10px;bottom:80px;max-width:160px;font-size:8px}.modebar .assembly-launch{display:none}}
+
+    /* Phone UI: canvas-first, controls in two short bottom rails.
+       Materials panel is an accessible disclosure; nothing covers the model by default. */
+    .settings-toggle{display:none}
+    .share-short{display:none}
+    @media(max-width:670px){
+      #stage{touch-action:pan-y}
+      #canvas{touch-action:pan-y}
+      .topbar{left:10px;right:10px;top:10px;align-items:flex-start}
+      .property-card{gap:7px;padding:8px 10px;max-width:calc(100% - 87px);border-radius:8px}
+      .property-icon{width:28px;height:28px;font-size:15px;flex:0 0 auto}
+      .property-card strong{font-size:11px}
+      .property-card small{font-size:7px;letter-spacing:.015em}
+      .open-window{padding:12px 9px;min-height:43px;font-size:10px;border-radius:7px;white-space:nowrap;flex-shrink:0}
+      .share-long{display:none}.share-short{display:inline}
+      .settings-toggle{
+        display:block;pointer-events:auto;right:10px;top:73px;
+        font-size:10px;font-weight:800;min-height:40px;
+        border:1px solid #dae5d6;border-radius:25px;
+        color:#284532;background:#f7fbf2ed;padding:10px 13px;
+        box-shadow:0 4px 16px #1c3c2019;backdrop-filter:blur(12px);
+      }
+      .settings-toggle[aria-expanded=true]{background:#203b2b;color:white}
+      .settings{
+        display:none;right:10px;top:119px;
+        z-index:5;width:min(238px,calc(100vw - 20px));
+        padding:17px;border-radius:10px;box-shadow:0 18px 45px #142b244d;
+      }
+      .settings.is-open{display:block}
+      .settings .head{font-size:10px}
+      .swatches{margin-bottom:17px;gap:13px}
+      .swatch{height:39px;width:39px}
+      .settings input[type=range]{min-height:34px}
+      .status{display:none}
+      .hint{top:auto;bottom:120px;left:10px;max-width:240px;font-size:9px;line-height:1.2;white-space:normal;opacity:.84;padding:8px 10px;pointer-events:none}
+      .rooms{
+        top:auto;left:9px;right:9px;bottom:67px;
+        display:flex;flex-direction:row;align-items:center;
+        gap:5px;overflow-x:auto;scrollbar-width:none;
+        padding:3px 1px 5px;z-index:3;
+      }
+      .rooms::-webkit-scrollbar{display:none}
+      .rooms .rooms-title{display:none}
+      .rooms button{
+        flex:0 0 auto;min-width:0;min-height:41px;
+        padding:10px 10px;gap:8px;font-size:10px;
+        border-radius:7px;white-space:nowrap;
+        background:#f7fbf4f3;
+      }
+      .rooms .assembly-button{margin:0!important;min-height:41px}
+      .modebar{
+        left:9px;right:9px;bottom:10px;
+        transform:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+        max-width:none;overflow:visible;white-space:normal;
+        gap:2px;padding:5px;border-radius:10px;
+        box-shadow:0 8px 25px #2a423933;
+      }
+      .modebar button{min-width:0;padding:12px 1px;min-height:42px;font-size:10px;border-radius:7px}
+      .modebar .assembly-launch{display:none}
+      .hud .micro-disclaimer{display:none}
+      .error{inset:15%;padding:16px}
+    }
+    @media(max-width:360px){
+      .property-card{max-width:calc(100% - 74px)}
+      .property-card strong{font-size:10px}
+      .open-window{font-size:9px;padding:10px 6px}
+      .rooms button{font-size:9px;padding:9px}
+      .modebar button{font-size:9px}
+    }
+    html[data-surface="hero"] .settings-toggle{display:none}
   </style>
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
 </head><body>
@@ -49,10 +119,11 @@
   <div id="canvas" aria-label="Representación interactiva de un apartamento en 3D"></div>
   <div class="hud topbar">
     <div class="property-card"><div class="property-icon">⌂</div><div><strong>Apartamento estudio</strong><small>CASA TOUR / MODELO DE EJEMPLO</small></div></div>
-    <button class="open-window" id="share" title="Copiar enlace de este tour">Compartir ↗</button>
+    <button class="open-window" id="share" title="Copiar enlace de este tour" aria-label="Copiar enlace del tour"><span class="share-long">Compartir ↗</span><span class="share-short" aria-hidden="true">Enlace ↗</span></button>
   </div>
   <div class="hud status" id="view-status" role="status">MODELO GEOMÉTRICO DEMO · SIN MEDIDAS CERTIFICADAS</div>
-  <div class="hud settings">
+  <button type="button" id="settings-toggle" class="hud settings-toggle" aria-controls="viewer-settings" aria-expanded="false" aria-label="Abrir materiales e iluminación">◐ Personalizar</button>
+  <div class="hud settings" id="viewer-settings">
     <div class="head">MATERIALES</div>
     <div class="swatches" role="group" aria-label="Paleta de materiales">
       <button class="swatch" data-palette="natural" aria-pressed="true" aria-label="Paleta natural"></button>
