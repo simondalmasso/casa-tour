@@ -104,6 +104,17 @@ class GenReconBridgeTests(unittest.TestCase):
         self.assertIn("--rights-confirmed", proc.stderr)
         self.assertFalse(self.out.exists())
 
+    def test_commercial_genrecon_is_always_blocked(self):
+        proc = self.command("--purpose", "commercial", "--execute",
+                            "--rights-confirmed", "--dependencies-reviewed")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("Uso comercial bloqueado", proc.stderr)
+        self.assertFalse(self.out.exists())
+        trial = self.command("--purpose", "commercial")
+        self.assertEqual(trial.returncode, 0, trial.stderr)
+        report = json.loads(trial.stdout)
+        self.assertFalse(report["commercialUseAllowed"])
+
     def test_mock_upstream_result_is_unreviewed_not_publishable(self):
         proc = self.command("--execute", "--rights-confirmed", "--dependencies-reviewed")
         self.assertEqual(proc.returncode, 0, proc.stderr)
