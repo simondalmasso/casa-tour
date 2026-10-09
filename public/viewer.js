@@ -19,13 +19,15 @@ scene.fog = new THREE.Fog(0xdce7d9,23,49);
 const camera = new THREE.PerspectiveCamera(42,1,0.06,90);
 camera.position.set(11.5,11,14);
 const controls = new OrbitControls(camera,renderer.domElement);
+const reduceMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let flight=null, active=true, assembly=null;
 controls.target.set(0,0.6,0);
 controls.enableDamping=true;
 controls.dampingFactor=.08;
 controls.minDistance=2;
 controls.maxDistance=30;
 controls.maxPolarAngle=Math.PI*.49;
-controls.autoRotate=true;
+controls.autoRotate=!reduceMotion;
 controls.autoRotateSpeed=.38;
 controls.update();
 const keyLight=new THREE.DirectionalLight(0xffedcf,3);
@@ -168,6 +170,72 @@ for(const [x,z,s] of [[-4.82,2.85,1],[.0,-2.8,.85],[5.05,2.3,.73]]){
   }
 }
 const sceneMaterials=Object.values(materials);
+const roomTargets={
+  living:{eye:[-4.1,4.6,5.8],focus:[-2.8,.45,0]},
+  bedroom:{eye:[3.9,4.5,-.1],focus:[3.5,.5,-1.9]},
+  kitchen:{eye:[2.9,4.6,7.7],focus:[3,.5,2.1]}
+};
+function glideTo(eye,look){
+  const destination=new THREE.Vector3(...eye),target=new THREE.Vector3(...look);
+  if(reduceMotion){
+    camera.position.copy(destination);
+    controls.target.copy(target);
+    controls.update();
+    return;
+  }
+  flight={
+    since:performance.now(),
+    duration:1050,
+    cameraFrom:camera.position.clone(),
+    targetFrom:controls.target.clone(),
+    cameraTo:destination,
+    targetTo:target
+  };
+  controls.enabled=false;
+}
+function startAssembly(){
+  assembly={
+    since:performance.now(),
+    duration:reduceMotion?1:2850
+  };
+  for(const mesh of meshes){
+    if(mesh.userData.buildingBaseY===undefined){
+      mesh.userData.buildingBaseY=mesh.position.y;
+      mesh.userData.buildingBaseScaleY=mesh.scale.y;
+    }
+    const name=mesh.name||"";
+    const floor=/piso|base|zócalo/.test(name);
+    const structure=/muro|dintel|ventana|cristal|marco/.test(name);
+    mesh.userData.buildingDelay=floor?0:structure?.25:.55;
+    mesh.userData.buildingSpan=floor?.37:structure?.43:.45;
+    mesh.userData.buildingOffset=floor?1.1:structure?4.0:5.1;
+    if(name==="base"){mesh.userData.buildingDelay=0;mesh.userData.buildingSpan=.15;mesh.userData.buildingOffset=.8;}
+    mesh.position.y=mesh.userData.buildingBaseY+mesh.userData.buildingOffset;
+  }
+  status.textContent="ENSAMBLAJE ILUSTRATIVO DE LA MAQUETA 3D";
+  notifyParent("CASA_TOUR_ASSEMBLY",{status:"started"});
+}
+function updateAssembly(time){
+  if(!assembly)return;
+  const progress=Math.min(1,(time-assembly.since)/assembly.duration);
+  for(const mesh of meshes){
+    const m=mesh.userData;
+    const fraction=THREE.MathUtils.clamp((progress-m.buildingDelay)/m.buildingSpan,0,1);
+    const eased=1-Math.pow(1-fraction,3);
+    mesh.position.y=m.buildingBaseY+(1-eased)*m.buildingOffset;
+  }
+  if(progress===1){
+    assembly=null;
+    status.textContent="MODELO GEOMÉTRICO DEMO · SIN MEDIDAS CERTIFICADAS";
+    notifyParent("CASA_TOUR_ASSEMBLY",{status:"completed"});
+  }
+}
+function setRoomButtons(current){
+  document.querySelectorAll("[data-room]").forEach(button=>{
+    button.setAttribute("aria-pressed",String(button.dataset.room===current));
+  });
+}
+
 function setPalette(name){
   const options={
     natural:{wall:0xe9e9db,wood:0xbfa98f,floor:0xd6c9b2,kitchen:0xb8c7b6,sofa:0x718b79,rug:0xb1bdad},
@@ -193,31 +261,49 @@ document.getElementById("daylight").addEventListener("input",e=>daylight(Number(
 daylight(14);
 let mode="dollhouse", lastMode="dollhouse";
 function setView(next){
-  if(!["dollhouse","top","walk","wireframe"].includes(next))return;
+  if(!["dollhouse","top","walk","wireframe","assembly","living","bedroom","kitchen"].includes(next))return;
+  if(next==="assembly"){
+    if(mode!=="dollhouse")setView("dollhouse");
+    startAssembly();
+    return;
+  }
+  if(assembly){
+    for(const mesh of meshes){
+      if(mesh.userData.buildingBaseY!==undefined)mesh.position.y=mesh.userData.buildingBaseY;
+    }
+    assembly=null;
+  }
   if(next==="wireframe"){
     const on=mode!=="wireframe";
     sceneMaterials.forEach(mat=>mat.wireframe=on);
     mode=on?"wireframe":lastMode;
     status.textContent=on?"GEOMETRÍA TRIANGULADA / MODO MALLA":"MODELO GEOMÉTRICO DEMO · SIN MEDIDAS CERTIFICADAS";
     document.querySelectorAll("[data-mode]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.mode===mode)));
+    notifyParent("CASA_TOUR_MODE",{mode});
     return;
   }
   sceneMaterials.forEach(mat=>mat.wireframe=false);
-  mode=next;lastMode=next;
+  mode=next;
+  lastMode=next;
+  setRoomButtons(roomTargets[next]?next:null);
   hiddenWalls.forEach(mesh=>mesh.visible=mode==="top");
   controls.autoRotate=false;
   controls.maxPolarAngle=mode==="top"?.19:Math.PI*.49;
-  controls.minPolarAngle=mode==="top"?.015:.015;
+  controls.minPolarAngle=.015;
   controls.minDistance=mode==="walk"?.2:2;
   controls.maxDistance=mode==="walk"?10:30;
-  if(mode==="top"){
-    camera.position.set(0,17,.3);controls.target.set(0,0,0);
+  if(roomTargets[next]){
+    glideTo(roomTargets[next].eye,roomTargets[next].focus);
+    const labels={living:"Estar",bedroom:"Dormitorio",kitchen:"Cocina"};
+    hint.textContent="Ambiente: "+labels[next]+" · arrastrá para girar";
+  }else if(mode==="top"){
+    glideTo([0,17,.3],[0,0,0]);
     hint.textContent="Vista superior · arrastrá para desplazar y usá la rueda";
   }else if(mode==="walk"){
-    camera.position.set(-2.6,1.64,2.7);controls.target.set(-2.6,1.55,-2.0);
+    glideTo([-2.6,1.64,2.7],[-2.6,1.55,-2.0]);
     hint.textContent="W A S D para moverte · arrastrá para mirar";
   }else{
-    camera.position.set(11.5,11,14);controls.target.set(0,.6,0);
+    glideTo([11.5,11,14],[0,.6,0]);
     hint.textContent="Arrastrá para girar · rueda para acercar";
   }
   controls.update();
@@ -226,13 +312,20 @@ function setView(next){
   notifyParent("CASA_TOUR_MODE",{mode});
 }
 document.querySelectorAll("[data-mode]").forEach(button=>button.addEventListener("click",()=>setView(button.dataset.mode)));
+document.querySelectorAll("[data-room]").forEach(button=>button.addEventListener("click",()=>setView(button.dataset.room)));
+document.getElementById("assemble").addEventListener("click",()=>setView("assembly"));
 renderer.domElement.addEventListener("pointerdown",()=>{controls.autoRotate=false;});
 function notifyParent(type,detail){
   if(window.parent!==window)window.parent.postMessage({type,tourId:"demo",...detail},"*");
 }
 window.addEventListener("message",event=>{
-  if(event.source!==window.parent || !event.data || event.data.type!=="CASA_TOUR_SET_VIEW")return;
-  setView(event.data.mode);
+  if(event.source!==window.parent || !event.data)return;
+  // The public demo is intentionally controllable by its embedding parent, never by an unrelated window.
+  if(event.data.type==="CASA_TOUR_VISIBILITY"){
+    active=event.data.active===true;
+    return;
+  }
+  if(event.data.type==="CASA_TOUR_SET_VIEW")setView(event.data.mode);
 });
 document.getElementById("share").addEventListener("click",async()=>{
   const shareURL=new URL("/tour/demo",location.origin).href;
@@ -266,8 +359,16 @@ function animate(time){
       camera.position.add(offset);controls.target.add(offset);
     }
   }
+  if(flight){
+    const fraction=THREE.MathUtils.clamp((time-flight.since)/flight.duration,0,1);
+    const eased=fraction<.5?4*fraction*fraction*fraction:1-Math.pow(-2*fraction+2,3)/2;
+    camera.position.lerpVectors(flight.cameraFrom,flight.cameraTo,eased);
+    controls.target.lerpVectors(flight.targetFrom,flight.targetTo,eased);
+    if(fraction===1){flight=null;controls.enabled=true;}
+  }
+  updateAssembly(time);
   controls.update();
-  renderer.render(scene,camera);
+  if(active)renderer.render(scene,camera);
 }
 function resize(){
   const width=Math.max(1,container.clientWidth),height=Math.max(1,container.clientHeight);
@@ -275,7 +376,7 @@ function resize(){
   renderer.setSize(width,height,false);
 }
 new ResizeObserver(resize).observe(container);resize();
-setView("dollhouse");controls.autoRotate=true;
+setView("dollhouse");controls.autoRotate=!reduceMotion;
 requestAnimationFrame(animate);
 renderer.domElement.addEventListener("webglcontextlost",event=>{
   event.preventDefault();error.style.display="flex";error.firstElementChild.textContent="Se perdió el contexto WebGL.";
