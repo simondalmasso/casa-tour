@@ -20,6 +20,9 @@ scene.fog = new THREE.Fog(0xdce7d9,23,49);
 const camera = new THREE.PerspectiveCamera(42,1,0.06,90);
 camera.position.set(11.5,11,14);
 const controls = new OrbitControls(camera,renderer.domElement);
+// OrbitControls defaults to touch-action:none, trapping vertical page swipes.
+// On phones horizontal drags rotate the house while vertical drags keep page scrolling.
+if(isPhone)renderer.domElement.style.touchAction="pan-y";
 const reduceMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let flight=null, active=true, assembly=null;
 controls.target.set(0,0.6,0);
