@@ -42,11 +42,11 @@ jobs:
           BASE: ${{ steps.stage.outputs.url }}
         run: |
           set -euo pipefail
-          curl -fsSL --max-time 20 "$BASE/" -o /tmp/home.html
-          curl -fsSL --max-time 20 "$BASE/studio" -o /tmp/studio.html
-          curl -fsSL --max-time 20 "$BASE/scene-sample.json" -o /tmp/scene.json
-          curl -fsSL --max-time 20 "$BASE/glb-export.js" -o /tmp/glb.js
-          curl -fsSL --max-time 20 "$BASE/api/v1/health" -o /tmp/health.json
+          curl --retry 12 --retry-all-errors --retry-delay 3 -fsSL --max-time 20 "$BASE/" -o /tmp/home.html
+          curl --retry 12 --retry-all-errors --retry-delay 3 -fsSL --max-time 20 "$BASE/studio" -o /tmp/studio.html
+          curl --retry 12 --retry-all-errors --retry-delay 3 -fsSL --max-time 20 "$BASE/scene-sample.json" -o /tmp/scene.json
+          curl --retry 12 --retry-all-errors --retry-delay 3 -fsSL --max-time 20 "$BASE/glb-export.js" -o /tmp/glb.js
+          curl --retry 12 --retry-all-errors --retry-delay 3 -fsSL --max-time 20 "$BASE/api/v1/health" -o /tmp/health.json
           grep -q "id=\"plan-editor\"" /tmp/studio.html
           grep -q "Ver GLB externo" /tmp/studio.html
           grep -q "schemaVersion" /tmp/scene.json
