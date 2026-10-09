@@ -1,0 +1,85 @@
+name: Casa Tour staging deployment
+on:
+  push:
+    branches: ["ops/cloudflare-release-20261009"]
+    paths:
+      - ".github/workflows/staging-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    concurrency:
+      group: casa-tour-staging-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify source and API tests
+        run: npm run validate
+      - name: Confirm Cloudflare credentials exist
+        env:
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CF_ACCOUNT" || { echo "ERROR: missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          test -n "$CF_TOKEN" || { echo "ERROR: missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          echo "Required Cloudflare credentials are configured (values masked)."
+      - name: Deploy unique staging Worker, NEVER production
+        id: staging
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          PREVIEW_NAME="casa-tour-stg-${GITHUB_SHA:0:8}"
+          echo "Publishing isolated Worker: $PREVIEW_NAME"
+          npx --yes wrangler@4 deploy --name "$PREVIEW_NAME"
+          PREVIEW_URL="https://${PREVIEW_NAME}.simondalmasso44.workers.dev"
+          echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          echo "Preview URL: $PREVIEW_URL"
+      - name: Verify staging HTML, API and tour shell
+        env:
+          BASE_URL: ${{ steps.staging.outputs.preview_url }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            if curl -fsSL --max-time 12 "$BASE_URL/api/v1/health" -o health.json; then
+              if node -e 'const fs=require("fs");const o=JSON.parse(fs.readFileSync("health.json","utf8"));if(o.ok!==true||o.product!=="casa-tour"||o.reconstruction!=="not_available")process.exit(1)' ; then
+                break
+              fi
+            fi
+            if [ "$attempt" -eq 18 ]; then echo "FAIL: staging API did not become healthy"; exit 1; fi
+            sleep 3
+          done
+          curl -fsSL --max-time 20 "$BASE_URL/" -o home.html
+          curl -fsSL --max-time 20 "$BASE_URL/embed/demo" -o embed.html
+          curl -fsSL --max-time 20 "$BASE_URL/viewer.js" -o viewer.js
+          grep -q "Casa Tour" home.html
+          grep -q "hero-model" home.html
+          grep -q "data-room=\"bedroom\"" embed.html
+          grep -q "OrbitControls" viewer.js
+          echo "Staging HTTP/asset contract GREEN"
+      - name: Install Playwright and run live mobile+desktop QA
+        env:
+          CASA_TOUR_BASE_URL: ${{ steps.staging.outputs.preview_url }}
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node tests/browser-smoke.mjs
+      - name: Preserve QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: casa-tour-staging-qa
+          path: |
+            test-artifacts/
+            health.json
+          if-no-files-found: ignore
+          retention-days: 3
