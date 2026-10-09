@@ -68,3 +68,39 @@ test("sample viewer and landing contain functional hooks",()=>{
   assert.match(app,/URL\.createObjectURL/);
   assert.match(app,/URL\.revokeObjectURL/);
 });
+
+test("live hero embeds the actual 3D viewer, not a static CSS mockup",()=>{
+  const html=readFileSync(resolve("public/index.html"),"utf8");
+  assert.match(html,/id="hero-model"[^>]+src="\/embed\/demo\?surface=hero"/);
+  assert.match(html,/href="\/motion.css"/);
+  assert.match(html,/src="\/motion.js"/);
+  assert.doesNotMatch(html,/class="art-floorplan"/);
+  assert.match(html,/data-scene-view="assembly"/);
+});
+test("room navigation, assembly and camera flights are wired to the 3D scene",()=>{
+  const html=readFileSync(resolve("public/embed.html"),"utf8");
+  const viewer=readFileSync(resolve("public/viewer.js"),"utf8");
+  const motion=readFileSync(resolve("public/motion.js"),"utf8");
+  assert.match(html,/data-room="living"/);
+  assert.match(html,/data-room="bedroom"/);
+  assert.match(html,/data-room="kitchen"/);
+  assert.match(html,/id="assemble"/);
+  assert.match(viewer,/function glideTo\(/);
+  assert.match(viewer,/function updateAssembly\(/);
+  assert.match(viewer,/function startAssembly\(/);
+  assert.match(viewer,/CASA_TOUR_VISIBILITY/);
+  assert.match(motion,/CASA_TOUR_SET_VIEW/);
+  assert.match(motion,/IntersectionObserver/);
+  assert.match(motion,/event.origin!==location.origin/);
+});
+test("demo truthfulness and reduced-motion behavior survive visual improvements",()=>{
+  const html=readFileSync(resolve("public/index.html"),"utf8");
+  const embed=readFileSync(resolve("public/embed.html"),"utf8");
+  const viewer=readFileSync(resolve("public/viewer.js"),"utf8");
+  const motionCSS=readFileSync(resolve("public/motion.css"),"utf8");
+  assert.match(html,/reconstrucción automática desde fotografías está en desarrollo/i);
+  assert.match(embed,/NO ES UN PLANO MEDIDO/);
+  assert.match(viewer,/prefers-reduced-motion: reduce/);
+  assert.match(motionCSS,/@media\(prefers-reduced-motion:reduce\)/);
+  assert.match(html,/MODALIDAD FUTURA/);
+});
