@@ -35,7 +35,8 @@ export function validatePlan(input) {
     if (!Array.isArray(element?.evidence?.photoIds) || element.evidence.photoIds.length > 120)
       errors.push(label + ": evidence.photoIds debe ser una lista.");
     else for (const id of element.evidence.photoIds) if (!photoSet.has(id)) errors.push(label + ": foto referenciada desconocida: " + id);
-    if (element?.evidence?.status === "photo-supported" && !element.evidence.photoIds.length)
+    if (element?.evidence?.status === "photo-supported" &&
+        (!Array.isArray(element.evidence.photoIds) || element.evidence.photoIds.length === 0))
       errors.push(label + ": photo-supported requiere al menos una foto.");
     if (element?.evidence?.status === "measured" && !measuredPermitted)
       errors.push(label + ": no se puede afirmar una medición sin referencia métrica verificada.");
