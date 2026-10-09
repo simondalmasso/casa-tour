@@ -47,16 +47,16 @@ test("public iframe and share routes resolve to real HTML asset",async()=>{
     assert.equal(response.headers.get("x-frame-options"),null);
     assert.equal(response.headers.get("x-content-type-options"),"nosniff");
   }
-  assert.deepEqual(served.slice(-2),["/embed.html","/embed.html"]);
+  assert.deepEqual(served.slice(-2),["/tour-shell.txt","/tour-shell.txt"]);
 });
 test("homepage maps to static index",async()=>{
   const response=await worker.fetch(request("/"),env);
   assert.equal(response.status,200);
-  assert.equal(served.at(-1),"/index.html");
+  assert.equal(served.at(-1),"/");
 });
 test("sample viewer and landing contain functional hooks",()=>{
   const html=readFileSync(resolve("public/index.html"),"utf8");
-  const embed=readFileSync(resolve("public/embed.html"),"utf8");
+  const embed=readFileSync(resolve("public/tour-shell.txt"),"utf8");
   const viewer=readFileSync(resolve("public/viewer.js"),"utf8");
   const app=readFileSync(resolve("public/app.js"),"utf8");
   assert.match(html,/id="photo-input"/);
@@ -103,4 +103,23 @@ test("demo truthfulness and reduced-motion behavior survive visual improvements"
   assert.match(viewer,/prefers-reduced-motion: reduce/);
   assert.match(motionCSS,/@media\(prefers-reduced-motion:reduce\)/);
   assert.match(html,/MODALIDAD FUTURA/);
+});
+
+test("Cloudflare canonicalization routes never fetch redirected .html assets",async()=>{
+  const requests=[];
+  const strictEnv={ASSETS:{async fetch(req){
+    const path=new URL(req.url).pathname;
+    requests.push(path);
+    if(path.endsWith(".html"))return Response.redirect("https://tour.example.test/",307);
+    return new Response("<html lang='es'>OK</html>",{status:200,headers:{"content-type":"text/plain"}});
+  }}};
+  for(const path of ["/","/embed/demo","/tour/demo"]){
+    const response=await worker.fetch(request(path),strictEnv);
+    assert.equal(response.status,200,path+" should never redirect");
+  }
+  assert.deepEqual(requests,["/","/tour-shell.txt","/tour-shell.txt"]);
+});
+test("embedded tour shell serves HTML content type without exposing redirects",async()=>{
+  const result=await worker.fetch(request("/embed/demo"),env);
+  assert.match(result.headers.get("content-type")??"",/text\/html/);
 });
