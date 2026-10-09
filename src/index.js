@@ -35,17 +35,20 @@ export default {
     if (request.method !== "GET" && request.method !== "HEAD") {
       return new Response("Method Not Allowed",{status:405,headers:{"allow":"GET, HEAD"}});
     }
-    let assetPath = url.pathname;
-    if (assetPath === "/tour/demo" || assetPath === "/embed/demo") assetPath = "/embed.html";
-    if (assetPath === "/") assetPath = "/index.html";
+    // Let Assets resolve its own canonical root. /index.html redirects to / on Cloudflare.
+    if (url.pathname === "/") return withSecurityHeaders(await env.ASSETS.fetch(request));
     if (url.pathname === "/tour/demo" || url.pathname === "/embed/demo") {
-      const headers = new Headers(request.headers);
-      const assetURL = new URL(assetPath,url.origin);
-      const assetRequest = new Request(assetURL,{method:request.method,headers});
-      return withSecurityHeaders(await env.ASSETS.fetch(assetRequest));
-    }
-    if (assetPath !== url.pathname) {
-      return withSecurityHeaders(await env.ASSETS.fetch(new Request(new URL(assetPath,url.origin),request)));
+      // Assets canonicalizes .html names, which would redirect away from our stable tour URL.
+      // Fetch a non-HTML internal asset and set its actual MIME type explicitly instead.
+      const shellRequest = new Request(new URL("/tour-shell.txt",url.origin),request);
+      const shell = await env.ASSETS.fetch(shellRequest);
+      if (!shell.ok) return withSecurityHeaders(shell);
+      const headers = new Headers(shell.headers);
+      headers.set("content-type","text/html; charset=utf-8");
+      headers.set("cache-control","public, max-age=60");
+      return withSecurityHeaders(new Response(shell.body,{
+        status:shell.status,statusText:shell.statusText,headers
+      }));
     }
     return withSecurityHeaders(await env.ASSETS.fetch(request));
   }
