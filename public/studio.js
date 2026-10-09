@@ -2,7 +2,7 @@ import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {summarizePlan} from "./scene-contract.js";
-import {createGlb} from "./glb-export.js";
+import {createGlb,inspectGlb} from "./glb-export.js";
 
 // Photo bytes, property JSON and generated GLB stay in the tab.
 // This tool never posts data or constructs remote model URLs.
@@ -170,7 +170,7 @@ $("plan-file").addEventListener("change",async event=>{
   finally{event.target.value="";}
 });
 $("photo-files").addEventListener("change",async event=>{
-  const files=[...event.target.files||[]].slice(0,16);
+  const files=[...(event.target.files||[])].slice(0,16);
   if(!files.length)return;
   let plan;
   try{plan=JSON.parse(editor.value);if(!Array.isArray(plan.photos))throw new Error("photos debe ser una lista.");}
@@ -195,6 +195,29 @@ $("photo-files").addEventListener("change",async event=>{
   updateStats(summarizePlan(plan));
   showMessage(added+" fotos elegidas. Solo se agregaron sus IDs/etiquetas al JSON; vinculalas a las superficies mediante evidence.photoIds. Nada fue enviado.");
   event.target.value="";
+});
+// Import output from an external offline reconstruction pipeline (e.g. GenRecon).
+// Security: never allow an imported GLB to fetch images or binary blobs by URI.
+$("model-file").addEventListener("change",async event=>{
+  const file=event.target.files?.[0];
+  if(!file)return;
+  try{
+    if(file.size>120*1024*1024 || file.size<28)throw new Error("El GLB debe medir entre 28 bytes y 120 MiB.");
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    const gltf=inspectGlb(bytes);
+    const unsafeUris=[
+      ...(gltf.buffers||[]).map(b=>b.uri).filter(Boolean),
+      ...(gltf.images||[]).map(img=>img.uri).filter(Boolean)
+    ].filter(uri=>typeof uri!=="string"||!uri.startsWith("data:"));
+    if(unsafeUris.length)throw new Error("El GLB contiene recursos externos. Usá un GLB autocontenido para evitar conexiones no autorizadas.");
+    await previewGlb(bytes);
+    resetDownload();
+    updateStats({ok:false});
+    $("provenance-title").textContent="GLB externo · origen no verificado";
+    $("provenance-description").textContent="Modelo importado de un archivo local. Casa Tour no puede confirmar su origen, escala, fidelidad respecto de fotografías ni derechos de publicación. El archivo no fue transmitido.";
+    showMessage("Modelo GLB externo abierto localmente ("+(bytes.byteLength/1024/1024).toFixed(2)+" MiB, "+gltf.nodes.length+" nodos). El plano JSON del editor no ha cambiado.");
+  }catch(error){showMessage("No se pudo abrir el GLB: "+error.message,true);}
+  finally{event.target.value="";}
 });
 const clock=new THREE.Clock();
 function animate(){
