@@ -37,7 +37,7 @@ jobs:
           NAME="casa-tour-recon-stg-${GITHUB_SHA:0:8}"
           npx --yes wrangler@4 deploy --name "$NAME" --strict --message "Annotated geometry Studio preview"
           echo "url=https://${NAME}.simondalmasso44.workers.dev" >> "$GITHUB_OUTPUT"
-      - name: Verify public Studio assets and API
+      - name: Verify Studio pretty URL, model assets and API (no 404)
         env:
           BASE: ${{ steps.stage.outputs.url }}
         run: |
