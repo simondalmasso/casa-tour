@@ -115,7 +115,7 @@ def export_report(report: dict, output: Path, glb: Path) -> None:
         if external:
             raise PreflightError("GLB incluye referencias a recursos externos no permitidos.")
         bin_header = handle.read(8)
-        if len(bin_header) != 8 or bin_header[4:8] != b"BIN\\x00":
+        if len(bin_header) != 8 or bin_header[4:8] != b"BIN\x00":
             raise PreflightError("GLB sin bloque binario autocontenido.")
         bin_size = int.from_bytes(bin_header[:4], "little")
         if 20 + json_size + 8 + bin_size != glb.stat().st_size:
