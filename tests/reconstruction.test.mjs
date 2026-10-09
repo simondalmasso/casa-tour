@@ -88,7 +88,7 @@ test("generator rejects malformed GLB headers and bad input plans",()=>{
   assert.throws(()=>createGlb(bad));
 });
 test("studio uses local model generation rather than untrusted remote reconstruction claims",()=>{
-  const html=readFileSync(new URL("../public/studio.html",import.meta.url),"utf8");
+  const html=readFileSync(new URL("../public/studio-shell.txt",import.meta.url),"utf8");
   const studio=readFileSync(new URL("../public/studio.js",import.meta.url),"utf8");
   assert.match(html,/src="\/studio.js"/);
   assert.match(html,/id="render-stage"/);
