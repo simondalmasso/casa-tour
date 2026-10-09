@@ -40,7 +40,7 @@ jobs:
           curl --retry 6 --retry-all-errors --retry-delay 2 -fsSL --max-time 18 "$LIVE/api/v1/health" -o /tmp/before-health.json
           node -e 'const x=require("/tmp/before-health.json");if(x.ok!==true||x.product!=="casa-tour"||x.reconstruction!=="not_available")process.exit(1)'
           npx --yes wrangler@4 deployments list --name casa-tour > prior-deployments.txt
-          ACTIVE=$(grep -m1 -E 'Version\(s\):[[:space:]]+\(100%\)' prior-deployments.txt | grep -Eo '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1)
+          ACTIVE=$(grep -E 'Version\(s\):[[:space:]]+\(100%\)' prior-deployments.txt | tail -n 1 | grep -Eo '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1)
           test -n "$ACTIVE" || { echo "::error::Cannot identify active deployed version"; exit 1; }
           if [ "$ACTIVE" != "34b90f9f-e9fd-4ce0-9865-e61cbef0770a" ]; then
             echo "::error::Production Worker changed since last verified release; aborting."
