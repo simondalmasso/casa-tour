@@ -82,6 +82,9 @@ def preflight(args: argparse.Namespace) -> dict:
         "automaticPhotoTo3D": False,
         "expectedOutput": str(output / "scene.glb"),
         "metricSurveyVerified": False,
+        "commercialUseAllowed": False,
+        "commercialUseBlocker": "NVIDIA nvdiffrast/nvdiffrec dependencies require separate commercial authorization.",
+        "requestedPurpose": args.purpose,
         "commands": [command_recon, command_glb],
     }
 
@@ -134,6 +137,7 @@ def export_report(report: dict, output: Path, glb: Path) -> None:
         "photoCopyrightRightsConfirmedByOperator": report["inputRightsAttested"],
         "thirdPartyDependenciesReviewedByOperator": report["dependenciesCommerciallyReviewed"],
         "publishable": False,
+        "commercialUseAllowed": False,
         "nextGate": "human camera-to-render, geometry continuity, license and metric QA",
     }
     (output / "casa-tour-provenance.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
@@ -151,7 +155,9 @@ def main() -> int:
     parser.add_argument("--min-images", type=int, default=8)
     parser.add_argument("--num-images", type=int, default=32)
     parser.add_argument("--python", default=sys.executable, help="Python from GenRecon CUDA environment")
-    parser.add_argument("--execute", action="store_true", help="Actually run GPU pipeline and GLB conversion")
+    parser.add_argument("--purpose", choices=["research", "commercial"], default="research",
+                        help="GenRecon evaluation is research-only; commercial is refused.")
+    parser.add_argument("--execute", action="store_true", help="Run GPU research pipeline, never commercial production")
     parser.add_argument("--rights-confirmed", action="store_true", help="Operator attests rights to input photographs")
     parser.add_argument("--dependencies-reviewed", action="store_true", help="Operator attests third-party licenses were reviewed")
     args = parser.parse_args()
@@ -162,6 +168,12 @@ def main() -> int:
         if not args.execute:
             print(json.dumps(report, indent=2, ensure_ascii=False))
             return 0
+        if args.purpose == "commercial":
+            raise PreflightError(
+                "Uso comercial bloqueado: dependencias NVIDIA nvdiffrast/nvdiffrec "
+                "tienen restricciones no comerciales. Se necesita licencia comercial "
+                "independiente y una revisión del proyecto antes de habilitar este modo."
+            )
         if not args.rights_confirmed or not args.dependencies_reviewed:
             raise PreflightError("La ejecución requiere --rights-confirmed y --dependencies-reviewed.")
         output = Path(args.output).expanduser().resolve()
