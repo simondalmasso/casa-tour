@@ -1,0 +1,99 @@
+name: Casa Tour guarded Studio release
+on:
+  push:
+    branches: ["ops/studio-release-20261009"]
+    paths: [".github/workflows/studio-production-release.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: casa-tour-production
+  cancel-in-progress: false
+
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      LIVE: https://casa-tour.simondalmasso44.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test application, geometry compiler and restricted research runner
+        run: |
+          set -euo pipefail
+          npm run validate
+          python3 -m unittest discover -s tests -p "*_test.py" -v
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -f public/studio-shell.txt
+          test -f public/glb-export.js
+      - name: Verify existing production Worker and capture active version
+        id: previous
+        run: |
+          set -euo pipefail
+          curl --retry 6 --retry-all-errors --retry-delay 2 -fsSL --max-time 18 "$LIVE/api/v1/health" -o /tmp/before-health.json
+          node -e 'const x=require("/tmp/before-health.json");if(x.ok!==true||x.product!=="casa-tour"||x.reconstruction!=="not_available")process.exit(1)'
+          npx --yes wrangler@4 deployments list --name casa-tour > prior-deployments.txt
+          ACTIVE=$(grep -m1 -E 'Version\(s\):[[:space:]]+\(100%\)' prior-deployments.txt | grep -Eo '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1)
+          test -n "$ACTIVE" || { echo "::error::Cannot identify active deployed version"; exit 1; }
+          if [ "$ACTIVE" != "34b90f9f-e9fd-4ce0-9865-e61cbef0770a" ]; then
+            echo "::error::Production Worker changed since last verified release; aborting."
+            exit 1
+          fi
+          echo "version=$ACTIVE" >> "$GITHUB_OUTPUT"
+          echo "Pre-release active Worker matches expected version $ACTIVE"
+      - name: Publish Studio to production
+        id: deploy
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --name casa-tour --strict --message "Casa Tour Studio annotated geometry, reviewed staged deployment"
+      - name: Verify HTTP routes after global propagation
+        run: |
+          set -euo pipefail
+          for retry in $(seq 1 20); do
+            if curl -fsSL --max-time 12 "$LIVE/api/v1/health" -o /tmp/new-health.json &&
+               node -e 'const x=require("/tmp/new-health.json");if(x.ok!==true||x.product!=="casa-tour")process.exit(1)'; then
+              break
+            fi
+            if [ "$retry" = 20 ]; then echo "::error::API did not propagate"; exit 1; fi
+            sleep 3
+          done
+          curl --retry 12 --retry-all-errors --retry-delay 2 -fsSL --max-time 18 "$LIVE/" -o /tmp/home.html
+          curl --retry 12 --retry-all-errors --retry-delay 2 -fsSL --max-time 18 "$LIVE/studio" -o /tmp/studio.html
+          curl --retry 12 --retry-all-errors --retry-delay 2 -fsSL --max-time 18 "$LIVE/embed/demo" -o /tmp/embed.html
+          curl --retry 12 --retry-all-errors --retry-delay 2 -fsSL --max-time 18 "$LIVE/glb-export.js" -o /tmp/export.js
+          grep -q 'href="/studio"' /tmp/home.html
+          grep -q 'id="plan-editor"' /tmp/studio.html
+          grep -q 'id="model-file"' /tmp/studio.html
+          grep -q 'data-room="kitchen"' /tmp/embed.html
+          grep -q 'createGlb' /tmp/export.js
+          echo "Studio production HTTP GREEN"
+      - name: Browser QA - existing tour and new GLB Studio
+        env:
+          CASA_TOUR_BASE_URL: ${{ env.LIVE }}
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node tests/browser-smoke.mjs
+          node tests/studio-browser-smoke.mjs
+      - name: Revert precisely to recorded previous release on failure
+        if: failure() && steps.deploy.outcome == 'success'
+        run: |
+          echo "::warning::Release verification failed. Restoring exact previous Worker version."
+          npx --yes wrangler@4 rollback "${{ steps.previous.outputs.version }}" --name casa-tour --message "Revert unsuccessful Casa Tour Studio deployment"
+      - name: Keep release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: casa-tour-studio-production-qa
+          path: |
+            prior-deployments.txt
+            test-artifacts/
+          retention-days: 7
+          if-no-files-found: ignore
