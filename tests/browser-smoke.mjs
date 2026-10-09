@@ -37,7 +37,10 @@ try {
   await tourFrame.locator('[data-room="bedroom"][aria-pressed="true"]').waitFor({timeout:12000,state:"attached"});
   await page.screenshot({path:"test-artifacts/tour-desktop.png"});
   assert.deepEqual(errors,[],errors.join("\n"));
-  const mobile=await context.browser().newPage({viewport:{width:390,height:844},deviceScaleFactor:1, reducedMotion:"reduce"});
+  // Free both desktop WebGL canvases before starting mobile on CI software GPU.
+  await page.close();
+  await context.close();
+  const mobile=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1, reducedMotion:"reduce"});
   mobile.on("pageerror",e=>errors.push("mobile: "+e.message));
   const mobileResponse=await mobile.goto(origin+"/",{waitUntil:"domcontentloaded"});
   assert.equal(mobileResponse?.status(),200);
