@@ -66,6 +66,8 @@ try {
   await mobile.locator("#explorar").scrollIntoViewIfNeeded();
   const mobileTour=mobile.frameLocator("#demo-frame");
   await mobileTour.locator("canvas").waitFor({state:"visible",timeout:20000});
+  const touchAction=await mobileTour.locator("canvas").evaluate(canvas=>getComputedStyle(canvas).touchAction);
+  assert.equal(touchAction,"pan-y","3D canvas must allow vertical document scroll on phones");
   const toggle=mobileTour.locator("#settings-toggle");
   await toggle.waitFor({state:"visible"});
   const panel=mobileTour.locator("#viewer-settings");
@@ -81,6 +83,8 @@ try {
   assert.equal(await mobileTour.locator('[data-room="kitchen"]').getAttribute("aria-pressed"),"true");
   await mobile.screenshot({path:"test-artifacts/tour-mobile.png"});
   await mobile.setViewportSize({width:320,height:700});
+  const shareHeight=await mobile.frameLocator("#demo-frame").locator("#share").evaluate(button=>button.getBoundingClientRect().height);
+  assert.ok(shareHeight<=50,"Compact share action must stay one line at 320px");
   await mobile.screenshot({path:"test-artifacts/home-mobile-small.png",fullPage:false});
   const smallOverflow=await mobile.evaluate(()=>document.documentElement.scrollWidth>innerWidth+3);
   assert.equal(smallOverflow,false,"Unexpected horizontal overflow at 320px");
