@@ -78,7 +78,7 @@ test("live hero embeds the actual 3D viewer, not a static CSS mockup",()=>{
   assert.match(html,/data-scene-view="assembly"/);
 });
 test("room navigation, assembly and camera flights are wired to the 3D scene",()=>{
-  const html=readFileSync(resolve("public/embed.html"),"utf8");
+  const html=readFileSync(resolve("public/tour-shell.txt"),"utf8");
   const viewer=readFileSync(resolve("public/viewer.js"),"utf8");
   const motion=readFileSync(resolve("public/motion.js"),"utf8");
   assert.match(html,/data-room="living"/);
@@ -95,7 +95,7 @@ test("room navigation, assembly and camera flights are wired to the 3D scene",()
 });
 test("demo truthfulness and reduced-motion behavior survive visual improvements",()=>{
   const html=readFileSync(resolve("public/index.html"),"utf8");
-  const embed=readFileSync(resolve("public/embed.html"),"utf8");
+  const embed=readFileSync(resolve("public/tour-shell.txt"),"utf8");
   const viewer=readFileSync(resolve("public/viewer.js"),"utf8");
   const motionCSS=readFileSync(resolve("public/motion.css"),"utf8");
   assert.match(html,/reconstrucción automática desde fotografías está en desarrollo/i);
