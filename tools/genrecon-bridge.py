@@ -88,11 +88,35 @@ def preflight(args: argparse.Namespace) -> dict:
 
 def export_report(report: dict, output: Path, glb: Path) -> None:
     with glb.open("rb") as handle:
-        header = handle.read(12)
-    if len(header) != 12 or header[:4] != b"glTF" or int.from_bytes(header[4:8], "little") != 2:
-        raise PreflightError("El output de GenRecon no es un GLB 2.0 válido.")
-    if int.from_bytes(header[8:12], "little") != glb.stat().st_size:
-        raise PreflightError("El GLB resultante declara un tamaño incorrecto.")
+        header = handle.read(20)
+        if len(header) != 20 or header[:4] != b"glTF" or int.from_bytes(header[4:8], "little") != 2:
+            raise PreflightError("El output de GenRecon no es un GLB 2.0 válido.")
+        if int.from_bytes(header[8:12], "little") != glb.stat().st_size or glb.stat().st_size < 28:
+            raise PreflightError("El GLB resultante declara un tamaño incorrecto.")
+        json_size = int.from_bytes(header[12:16], "little")
+        if header[16:20] != b"JSON" or json_size < 2 or json_size > 32 * 1024 * 1024:
+            raise PreflightError("El GLB carece de encabezado JSON válido.")
+        json_bytes = handle.read(json_size)
+        try:
+            meta = json.loads(json_bytes)
+        except (json.JSONDecodeError, UnicodeDecodeError) as error:
+            raise PreflightError("GLB JSON inválido.") from error
+        if meta.get("asset", {}).get("version") != "2.0" or not meta.get("meshes"):
+            raise PreflightError("GLB sin geometría glTF 2.0.")
+        external = [
+            value.get("uri", "")
+            for collection in ("images", "buffers")
+            for value in meta.get(collection, [])
+            if value.get("uri", "") and not value.get("uri", "").startswith("data:")
+        ]
+        if external:
+            raise PreflightError("GLB incluye referencias a recursos externos no permitidos.")
+        bin_header = handle.read(8)
+        if len(bin_header) != 8 or bin_header[4:8] != b"BIN\\x00":
+            raise PreflightError("GLB sin bloque binario autocontenido.")
+        bin_size = int.from_bytes(bin_header[:4], "little")
+        if 20 + json_size + 8 + bin_size != glb.stat().st_size:
+            raise PreflightError("GLB truncado o con bloques inconsistentes.")
     sha = hashlib.sha256()
     with glb.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
