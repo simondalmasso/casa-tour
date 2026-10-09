@@ -18,10 +18,13 @@
 - Comprobación de no overflow horizontal en 390/320, sin `pageerror` y capturas.
 - `npm run validate` cubre sintaxis y tests del contrato de Worker.
 
-## Estado del servicio externo (2026-10-09)
-- El endpoint público de Cloudflare responde HTTP 200 con cuerpo `text/plain` de 12 bytes **también en** `/api/v1/health`, no el JSON previsto de Casa Tour. Por tanto, el Worker público todavía no ejecuta este código.
-- La prueba aislada de GitHub Actions, `Cloudflare isolated preview`, validó los tests pero **omitió el deploy**: `CLOUDFLARE_ACCOUNT_ID` y/o `CLOUDFLARE_API_TOKEN` no están configurados como GitHub Actions secrets de este repositorio.
-- La cuenta Cloudflare real, el Worker activo y sus deploys anteriores no están inspeccionados; no sobreescribir producción sin acceso controlado y rollback.
-- Configurar secrets en GitHub > Settings > Secrets and variables > Actions, con token de Cloudflare de privilegios mínimos (Workers Scripts Edit para la cuenta adecuada) y su Account ID. No escribir tokens en el repositorio ni en mensajes.
+## Estado de publicación: en producción desde 2026-10-09
+
+- El Worker antiguo devolvía texto plano de 12 bytes. Ese hallazgo fue resuelto mediante release.
+- Se configuraron en GitHub Actions los secretos Cloudflare y se publicó **staging** aislado: [deploy + QA GREEN](https://github.com/simondalmasso/casa-tour/actions/runs/37991683773).
+- Luego se desplegó el Worker público `casa-tour` mediante un workflow con detección del placeholder anterior, registro de versión previa y rollback automático en caso de fallos. [Release GREEN](https://github.com/simondalmasso/casa-tour/actions/runs/37991867603).
+- Se completó Playwright sobre la URL definitiva, sin errores JavaScript, con screenshots de escritorio y teléfonos 390/320 px. Las comprobaciones HTTP externas confirmaron HTML y JSON correctos.
+- Ver [docs/DEPLOYMENT.md](DEPLOYMENT.md) para URLs, evidencia y rollback.
+
 
 La experiencia móvil es un MVP visual real sobre una **maqueta ilustrativa**. No convierte automáticamente fotografías en modelos 3D ni mide viviendas reales.
