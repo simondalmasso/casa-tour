@@ -1,12 +1,5 @@
 name: Studio 3D browser smoke
 on:
-  push:
-    branches: ["feat/reconstruction-workbench-phase1"]
-    paths:
-      - ".github/workflows/studio-smoke.yml"
-      - "public/**"
-      - "src/**"
-      - "tests/studio-browser-smoke.mjs"
   workflow_dispatch:
 permissions:
   contents: read
