@@ -123,3 +123,25 @@ test("embedded tour shell serves HTML content type without exposing redirects",a
   const result=await worker.fetch(request("/embed/demo"),env);
   assert.match(result.headers.get("content-type")??"",/text\/html/);
 });
+
+test("phone layout prioritizes navigable 3D house and protects editorial text from overlays",()=>{
+  const html=readFileSync(resolve("public/index.html"),"utf8");
+  const css=readFileSync(resolve("public/mobile.css"),"utf8");
+  assert.match(html,/href="\/mobile.css"/);
+  assert.match(css,/\.hero-copy\s*\{display:contents\}/);
+  assert.match(css,/\.hero-art\s*\{[\s\S]*?grid-row:3/);
+  assert.match(css,/\.hero-annotation\s*\{display:none\}/);
+  assert.match(css,/@media\s*\(max-width:\s*365px\)/);
+});
+test("mobile viewer has a closed customization drawer and efficient GPU defaults",()=>{
+  const shell=readFileSync(resolve("public/tour-shell.txt"),"utf8");
+  const viewer=readFileSync(resolve("public/viewer.js"),"utf8");
+  assert.match(shell,/id="settings-toggle"/);
+  assert.match(shell,/aria-expanded="false"/);
+  assert.match(shell,/id="viewer-settings"/);
+  assert.match(shell,/\.settings\.is-open\s*\{display:block\}/);
+  assert.match(shell,/touch-action:pan-y/);
+  assert.match(viewer,/function setSettingsOpen\(/);
+  assert.match(viewer,/isPhone\?1\.2:1\.65/);
+  assert.match(viewer,/isPhone\?1024:2048/);
+});
