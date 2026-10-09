@@ -1,0 +1,43 @@
+name: Studio 3D browser smoke
+on:
+  push:
+    branches: ["feat/reconstruction-workbench-phase1"]
+    paths:
+      - ".github/workflows/studio-smoke.yml"
+      - "public/**"
+      - "src/**"
+      - "tests/studio-browser-smoke.mjs"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate geometry generator before browser
+        run: npm run validate
+      - name: Install browser tools
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1 wrangler@4
+          npx playwright install --with-deps chromium
+      - name: Start local Cloudflare Worker
+        run: |
+          npx wrangler dev --local --ip 127.0.0.1 --port 8787 > worker-test.log 2>&1 &
+          echo $! > worker-test.pid
+      - name: Exercise Studio in Chromium
+        run: node tests/studio-browser-smoke.mjs
+      - name: Upload Studio QA screenshots and artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: casa-tour-studio-qa
+          path: |
+            worker-test.log
+            test-artifacts/
+          if-no-files-found: ignore
+          retention-days: 3
