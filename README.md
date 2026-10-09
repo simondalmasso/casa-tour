@@ -1,2 +1,44 @@
-# casa-tour
-take a 3D tour inside your home, instantly with pictures
+# Casa Tour
+
+**Producto de visitas tridimensionales para inmobiliarias (B2B) y particulares (B2C).** Publicación por URL o iframe, con planes diferenciados de panoramas 360°, vista Dios, materiales y reconstrucción geométrica revisada.
+
+## Estado actual: primer MVP demostrativo
+
+Incluye una **maqueta 3D auténtica** de vivienda construida mediante Three.js: pisos, muros, aberturas y muebles como mallas independientes. Puede rotarse, verse desde arriba, recorrerse con WASD, mostrar malla geométrica y cambiar materiales e iluminación.
+
+**Todavía NO hay reconstrucción automática de viviendas desde fotografías.** El formulario permite seleccionar imágenes localmente y exportar una ficha JSON; no sube ni procesa fotos. No hay cuentas, pagos, captación de datos personales ni precisión dimensional certificada. No debe anunciarse como reconstrucción de una casa real.
+
+## Rutas
+
+- `/`: landing B2B/B2C y preparación local de fotos
+- `/tour/demo`: tour independiente
+- `/embed/demo`: visor para iframe
+- `/api/v1/health`: salud del producto
+- `/api/v1/tours/demo`: manifest del tour
+
+Ejemplo de integración (solo tras desplegar):
+
+```html
+<iframe
+  src="https://casa-tour.simondalmasso44.workers.dev/embed/demo"
+  title="Casa Tour — visita 3D"
+  loading="lazy"
+  allow="fullscreen"
+  style="width:100%;height:600px;border:0">
+</iframe>
+```
+
+El visor carga Three.js desde jsDelivr. Necesita conexión a Internet y un navegador con WebGL. **La URL anterior es el objetivo de despliegue, no una confirmación de despliegue.**
+
+## Desarrollar y desplegar
+
+Node.js 22+; Wrangler 4 para Cloudflare Workers.
+
+```bash
+npm run validate
+npx wrangler@4 dev
+```
+
+Deploy manual: `npx wrangler@4 deploy`, utilizando credenciales adecuadas del proyecto Cloudflare. `.github/workflows/deploy.yml` requiere `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`; se dispara manualmente para evitar sobrescrituras involuntarias.
+
+Ver [docs/PRODUCT.md](docs/PRODUCT.md) para arquitectura B2B/B2C, evidencias, limitaciones, estrategias de reconstrucción, seguridad y roadmap.
