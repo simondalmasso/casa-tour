@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "title": "Casa Tour — planta piloto anotada",
+  "units": "m",
+  "capture": {
+    "metricEvidenceVerified": false,
+    "measurementReference": null,
+    "method": "annotated-layout-demo"
+  },
+  "photos": [],
+  "rooms": [
+    {
+      "id": "estar",
+      "name": "Estar y cocina",
+      "bounds": [
+        0,
+        0,
+        4.6,
+        3.4
+      ],
+      "evidence": {
+        "status": "inferred",
+        "photoIds": []
+      }
+    },
+    {
+      "id": "dormitorio",
+      "name": "Dormitorio",
+      "bounds": [
+        4.6,
+        0,
+        3.2,
+        3.4
+      ],
+      "evidence": {
+        "status": "inferred",
+        "photoIds": []
+      }
+    }
+  ],
+  "walls": [
+    {
+      "id": "norte",
+      "from": [
+        0,
+        0
+      ],
+      "to": [
+        7.8,
+        0
+      ],
+      "height": 2.7,
+      "thickness": 0.16,
+      "evidence": {
+        "status": "inferred",
+        "photoIds": []
+      },
+      "openings": [
+        {
+          "id": "ventana_norte",
+          "kind": "window",
+          "at": 1.4,
+          "width": 1.8,
+          "bottom": 0.92,
+          "height": 1.33,
+          "evidence": {
+            "status": "inferred",
+            "photoIds": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "este",
+      "from": [
+        7.8,
+        0
+      ],
+      "to": [
+        7.8,
+        3.4
+      ],
+      "height": 2.7,
+      "thickness": 0.16,
+      "evidence": {
+        "status": "inferred",
+        "photoIds": []
+      },
+      "openings": []
+    },
+    {
+      "id": "sur",
+      "from": [
+        7.8,
+        3.4
+      ],
+      "to": [
+        0,
+        3.4
+      ],
+      "height": 2.7,
+      "thickness": 0.16,
+      "evidence": {
+        "status": "inferred",
+        "photoIds": []
+      },
+      "openings": [
+        {
+          "id": "entrada",
+          "kind": "door",
+          "at": 6,
+          "width": 0.95,
+          "bottom": 0,
+          "height": 2.13,
+          "evidence": {
+            "status": "inferred",
+            "photoIds": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "oeste",
+      "from": [
+        0,
+        3.4
+      ],
+      "to": [
+        0,
+        0
+      ],
+      "height": 2.7,
+      "thickness": 0.16,
+      "evidence": {
+        "status": "inferred",
+        "photoIds": []
+      },
+      "openings": []
+    },
+    {
+      "id": "interior",
+      "from": [
+        4.6,
+        0
+      ],
+      "to": [
+        4.6,
+        3.4
+      ],
+      "height": 2.7,
+      "thickness": 0.12,
+      "evidence": {
+        "status": "inferred",
+        "photoIds": []
+      },
+      "openings": [
+        {
+          "id": "puerta_dormitorio",
+          "kind": "door",
+          "at": 1.2,
+          "width": 0.87,
+          "bottom": 0,
+          "height": 2.13,
+          "evidence": {
+            "status": "inferred",
+            "photoIds": []
+          }
+        }
+      ]
+    }
+  ]
+}

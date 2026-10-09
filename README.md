@@ -36,6 +36,19 @@ Ejemplo de integración del demo publicado:
 
 El visor carga Three.js desde jsDelivr. Necesita conexión a Internet y un navegador con WebGL. **La URL anterior está publicada y verificada en producción desde el 2026-10-09.**
 
+## Casa Tour Studio: geometría anotada a GLB
+
+**Ruta experimental:** [`/studio`](https://casa-tour.simondalmasso44.workers.dev/studio) (disponible cuando se publique esta versión). El estudio permite corregir un plano con habitaciones, muros, puertas y ventanas, señalar qué fue inferido o está respaldado por referencias, generar GLB 2.0 con mallas independientes y visualizarlo tanto en desktop como en teléfono. El editor no sube fotos: solo registra IDs y etiquetas locales. También abre archivos GLB autocontenidos generados con otras herramientas.
+
+Para reproducir sin GPU:
+
+```bash
+npm run validate
+node tools/plan-to-glb.mjs examples/annotated-two-room.json ejemplo.glb
+```
+
+**La generación desde el plano NO equivale a reconstrucción automática desde fotografías.** El adaptador `tools/genrecon-bridge.py` puede preparar/ejecutar pruebas offline con COLMAP + CUDA, pero está bloqueado para fines comerciales por las restricciones de dependencias NVIDIA. Ver [docs/RECONSTRUCTION.md](docs/RECONSTRUCTION.md). La publicación comercial de reconstrucción foto→3D sigue pendiente.
+
 ## Desarrollar y desplegar
 
 Node.js 22+; Wrangler 4 para Cloudflare Workers.

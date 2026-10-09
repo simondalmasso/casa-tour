@@ -37,6 +37,20 @@ export default {
     }
     // Let Assets resolve its own canonical root. /index.html redirects to / on Cloudflare.
     if (url.pathname === "/") return withSecurityHeaders(await env.ASSETS.fetch(request));
+    if (url.pathname === "/studio") {
+      // Cloudflare Assets may return a 404 when a Worker forwards a pretty /studio URL.
+      // Serve a non-.html backing asset, avoiding the automatic canonical redirect loop.
+      const shell = await env.ASSETS.fetch(new Request(new URL("/studio-shell.txt",url.origin),request));
+      if (!shell.ok) return withSecurityHeaders(shell);
+      const headers = new Headers(shell.headers);
+      headers.set("content-type","text/html; charset=utf-8");
+      headers.set("cache-control","public, max-age=60");
+      const response=withSecurityHeaders(new Response(shell.body,{
+        status:shell.status,statusText:shell.statusText,headers
+      }));
+      response.headers.set("content-security-policy","frame-ancestors 'none'");
+      return response;
+    }
     if (url.pathname === "/tour/demo" || url.pathname === "/embed/demo") {
       // Assets canonicalizes .html names, which would redirect away from our stable tour URL.
       // Fetch a non-HTML internal asset and set its actual MIME type explicitly instead.

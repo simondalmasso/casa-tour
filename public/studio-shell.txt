@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#18291e">
+  <meta name="description" content="Casa Tour Studio: compilador local y visor de plantas anotadas a mallas GLB, con trazabilidad de medidas y fotografías.">
+  <title>Casa Tour Studio — planos anotados a geometría 3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/studio.css">
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
+  <script type="module" src="/studio.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a href="/" class="wordmark" aria-label="Volver al inicio de Casa Tour"><span class="mark">▧</span> casa<span>tour</span><i>studio</i></a>
+    <div class="topbar-right"><span class="status-indicator">LOCAL / SIN SUBIR FOTOS</span><a href="/" class="home-link">Volver al sitio ↗</a></div>
+  </header>
+  <main class="container">
+    <div class="intro">
+      <div class="kicker">LABORATORIO ESPACIAL / FASE 01</div>
+      <h1>Construí una casa.<br><em>Revisá su geometría.</em></h1>
+      <p>Transformá un plano anotado en una malla 3D GLB con paredes, vanos de puertas y ventanas y procedencia de cada superficie. Podés adjuntar fotos de referencia, pero <strong>esta herramienta no extrae la geometría automáticamente de las fotos</strong>.</p>
+    </div>
+    <div class="studio-layout">
+      <section class="editor" aria-label="Edición de planos">
+        <div class="panel-top">
+          <span class="panel-index">01 / ENTRADA</span>
+          <h2>Plano anotado <span class="experimental">EXPERIMENTAL</span></h2>
+          <p>Las coordenadas son metros en el suelo X/Z; la elevación usa Y. Anotá paredes, ambientes, aberturas y qué datos se infirieron.</p>
+        </div>
+        <div class="editor-actions">
+          <button type="button" class="secondary" id="reset-sample">Usar plano de ejemplo</button>
+          <label class="secondary file-button">Importar JSON<input type="file" id="plan-file" accept=".json,application/json"></label>
+          <label class="secondary file-button">Ver GLB externo<input type="file" id="model-file" accept=".glb,model/gltf-binary"></label>
+        </div>
+        <label class="field-title" for="plan-editor">MANIFIESTO DE GEOMETRÍA · JSON</label>
+        <textarea id="plan-editor" spellcheck="false" autocapitalize="off" rows="15" placeholder="Cargando ejemplo…" aria-describedby="plan-hint"></textarea>
+        <div class="under-editor" id="plan-hint">No agregues fotografías ni información personal dentro del JSON. La previsualización y el GLB se generan en este dispositivo.</div>
+        <section class="photo-reference" aria-labelledby="photo-title">
+          <div class="photo-heading">
+            <div><span class="field-title">02 / EVIDENCIA LOCAL</span><h3 id="photo-title">Fotos de referencia</h3></div>
+            <label class="secondary file-button">Seleccionar fotos<input id="photo-files" type="file" accept="image/jpeg,image/png,image/webp" multiple></label>
+          </div>
+          <p>Las fotos quedan en tu navegador. Se agregan solo IDs y nombres de referencia al plano; tenés que vincularlas manualmente en <code>evidence.photoIds</code>. No se infiere una pared por cargar una imagen.</p>
+          <div id="photo-thumbs" class="photo-thumbs" aria-live="polite"></div>
+        </section>
+        <div class="actions">
+          <button type="button" class="primary" id="build-glb">Generar malla 3D <span>↗</span></button>
+          <button type="button" class="secondary" id="save-glb" disabled>Descargar GLB</button>
+          <button type="button" class="secondary" id="save-json">Guardar plano</button>
+        </div>
+        <div class="feedback" id="feedback" role="status" aria-live="polite">Cargando plano de ejemplo…</div>
+      </section>
+      <section class="preview" aria-label="Resultado espacial 3D">
+        <div class="preview-head">
+          <div><span class="panel-index">03 / GEOMETRÍA</span><h2>Maqueta editable</h2></div>
+          <span class="preview-live"><span class="status-point"></span> WEBGL · GLB 2.0</span>
+        </div>
+        <div class="render-wrap">
+          <div id="render-stage" role="img" aria-label="Visor interactivo de geometría espacial 3D. Arrastrá para rotar y usá la rueda o pellizcá para hacer zoom."></div>
+          <div class="scene-legend">ARRASTRÁ PARA GIRAR <span>·</span> PELLIZCÁ PARA ZOOM</div>
+          <div class="scene-note">MODELO ANOTADO, NO ESCANEO FOTOGRÁFICO</div>
+          <div class="render-loading" id="render-loading">Preparando vista 3D…</div>
+        </div>
+        <div class="details" id="plan-summary" aria-live="polite">
+          <div><small>AMBIENTES</small><strong id="rooms-count">—</strong></div>
+          <div><small>PAREDES</small><strong id="walls-count">—</strong></div>
+          <div><small>ABERTURAS</small><strong id="openings-count">—</strong></div>
+          <div><small>ÁREA DE PLANTA</small><strong id="area-count">—</strong></div>
+        </div>
+        <div class="provenance">
+          <span class="provenance-dot"></span>
+          <div><strong id="provenance-title">Geometría inferida</strong><p id="provenance-description">Sin escala validada ni foto analizada automáticamente. Las medidas ingresadas requieren comprobación sobre el inmueble o un plano fiable.</p></div>
+        </div>
+      </section>
+    </div>
+    <footer class="footer">
+      <p><strong>Privacidad:</strong> el editor no envía fotos, planos ni mallas a Casa Tour. Las bibliotecas WebGL se cargan desde el CDN de Three.js. Para procesar imágenes con IA real hace falta un backend GPU, calibración de cámaras y revisión humana.</p>
+      <a href="https://github.com/simondalmasso/casa-tour" target="_blank" rel="noopener noreferrer">Repositorio / código y documentación ↗</a>
+    </footer>
+  </main>
+</body>
+</html>

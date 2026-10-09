@@ -145,3 +145,19 @@ test("mobile viewer has a closed customization drawer and efficient GPU defaults
   assert.match(viewer,/isPhone\?1\.2:1\.65/);
   assert.match(viewer,/isPhone\?1024:2048/);
 });
+
+test("Studio pretty URL resolves without Cloudflare HTML redirect loops",async()=>{
+  const requests=[];
+  const assets={ASSETS:{async fetch(req){
+    const path=new URL(req.url).pathname;
+    requests.push(path);
+    if(path.endsWith(".html"))return Response.redirect("https://tour.example.test/",307);
+    return new Response("<html><title>Casa Tour Studio</title></html>",{status:200,headers:{"content-type":"text/plain"}});
+  }}};
+  const response=await worker.fetch(request("/studio"),assets);
+  assert.equal(response.status,200);
+  assert.equal(response.headers.get("content-type"),"text/html; charset=utf-8");
+  assert.equal(response.headers.get("content-security-policy"),"frame-ancestors 'none'");
+  assert.deepEqual(requests,["/studio-shell.txt"]);
+  assert.match(await response.text(),/Studio/);
+});
