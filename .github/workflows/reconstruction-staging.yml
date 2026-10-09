@@ -1,9 +1,5 @@
 name: Casa Tour reconstruction Studio staging
 on:
-  push:
-    branches: ["feat/reconstruction-workbench-phase1"]
-    paths:
-      - ".github/workflows/reconstruction-staging.yml"
   workflow_dispatch:
 
 permissions:
