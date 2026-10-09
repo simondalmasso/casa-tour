@@ -1,20 +1,86 @@
-name: Deploy Casa Tour (manual)
+name: Deploy Casa Tour (manual, guarded)
 on:
   workflow_dispatch:
+
 permissions:
   contents: read
+
+concurrency:
+  group: casa-tour-production
+  cancel-in-progress: false
+
 jobs:
-  deploy:
+  release:
     runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PRODUCTION_URL: https://casa-tour.simondalmasso44.workers.dev
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Verify
-        run: npm run validate
-      - name: Publish Cloudflare Worker
-        run: npx --yes wrangler@4 deploy
+      - name: Verify release source
+        run: |
+          set -euo pipefail
+          npm run validate
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+      - name: Record current version for exact rollback
+        id: previous
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deployments list --name casa-tour > previous-deployments.txt
+          BEFORE=$(grep -m1 "Version(s):" previous-deployments.txt | grep -Eo '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1)
+          test -n "$BEFORE" || { echo "::error::Cannot determine previous Worker version. Stop."; exit 1; }
+          echo "version=$BEFORE" >> "$GITHUB_OUTPUT"
+          echo "Recorded previous deployment version for rollback"
+      - name: Publish validated Casa Tour to production
+        id: deploy
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --name casa-tour --strict --message "Casa Tour guarded manual release from GitHub main"
+      - name: Validate production API and published web assets
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            if curl -fsSL --max-time 12 "$PRODUCTION_URL/api/v1/health" -o health.json; then
+              if node -e 'const fs=require("fs");const o=JSON.parse(fs.readFileSync("health.json","utf8"));if(o.ok!==true||o.product!=="casa-tour"||o.reconstruction!=="not_available")process.exit(1)'; then
+                break
+              fi
+            fi
+            if [ "$attempt" -eq 20 ]; then echo "::error::Production API health failed"; exit 1; fi
+            sleep 3
+          done
+          curl -fsSL --max-time 20 "$PRODUCTION_URL/" -o index.html
+          curl -fsSL --max-time 20 "$PRODUCTION_URL/embed/demo" -o embed.html
+          curl -fsSL --max-time 20 "$PRODUCTION_URL/mobile.css" -o mobile.css
+          grep -q "hero-model" index.html
+          grep -q "id=\"settings-toggle\"" embed.html
+          grep -q "mobile-first experience" mobile.css -i
+          echo "Production API and static 3D contracts GREEN"
+      - name: Install Playwright and verify real production desktop/mobile
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CASA_TOUR_BASE_URL: ${{ env.PRODUCTION_URL }}
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node tests/browser-smoke.mjs
+      - name: Rollback automatically if release verification failed
+        if: failure() && steps.deploy.outcome == 'success'
+        run: |
+          echo "::warning::Production validation failed; rolling back to previous deployed Worker version."
+          npx --yes wrangler@4 rollback "${{ steps.previous.outputs.version }}" --name casa-tour --message "Automatic rollback to recorded prior version: failed live verification"
+      - name: Upload release verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: casa-tour-production-validation
+          path: |
+            previous-deployments.txt
+            test-artifacts/
+            health.json
+          retention-days: 7
+          if-no-files-found: ignore
