@@ -171,9 +171,9 @@ for(const [x,z,s] of [[-4.82,2.85,1],[.0,-2.8,.85],[5.05,2.3,.73]]){
 }
 const sceneMaterials=Object.values(materials);
 const roomTargets={
-  living:{eye:[-4.1,4.6,5.8],focus:[-2.8,.45,0]},
-  bedroom:{eye:[3.9,4.5,-.1],focus:[3.5,.5,-1.9]},
-  kitchen:{eye:[2.9,4.6,7.7],focus:[3,.5,2.1]}
+  living:{eye:[-3.5,8.5,6.8],focus:[-2.8,.45,0]},
+  bedroom:{eye:[3.6,9.2,2.5],focus:[3.5,.5,-1.9]},
+  kitchen:{eye:[3.1,8.2,8.1],focus:[3,.5,2.1]}
 };
 function glideTo(eye,look){
   const destination=new THREE.Vector3(...eye),target=new THREE.Vector3(...look);
