@@ -38,6 +38,14 @@ try{
   assert.ok(gltf.nodes.length>5,"must export individual walls and floors");
   assert.equal(gltf.scenes[0].extras.origin,"manually-annotated-layout");
   assert.equal(gltf.scenes[0].extras.metricEvidenceVerified,false);
+  // Re-import the generated GLB as a self-contained external model.
+  await page.locator("#model-file").setInputFiles({
+    name:"generated.glb",mimeType:"model/gltf-binary",
+    buffer:readFileSync("test-artifacts/studio-generated.glb")
+  });
+  await page.locator("#provenance-title").getByText(/GLB externo/).waitFor({timeout:20000});
+  assert.match(await page.locator("#feedback").textContent(),/Modelo GLB externo abierto/);
+  assert.equal(await page.locator("#save-glb").isDisabled(),true,"Opening an unknown model must not claim annotated-plan export");
   // Invalid metric input must prevent export and show why.
   let sample=JSON.parse(await page.locator("#plan-editor").inputValue());
   sample.rooms[0].bounds[2]=-2;
