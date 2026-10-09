@@ -1,13 +1,6 @@
 name: Visual 3D smoke (manual)
 on:
   workflow_dispatch:
-  push:
-    branches: ["feat/mobile-first-3d-ux"]
-    paths:
-      - ".github/workflows/browser-smoke.yml"
-      - "public/**"
-      - "src/**"
-      - "tests/browser-smoke.mjs"
 permissions:
   contents: read
 jobs:
