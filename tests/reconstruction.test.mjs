@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFileSync} from "node:fs";
+import {readFileSync,mkdtempSync,rmSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+import {spawnSync} from "node:child_process";
 import {validatePlan,planToBoxes,summarizePlan} from "../public/scene-contract.js";
 import {createGlb,inspectGlb} from "../public/glb-export.js";
 
@@ -95,4 +98,20 @@ test("studio uses local model generation rather than untrusted remote reconstruc
   assert.match(studio,/loader.parse\(/);
   assert.match(studio,/URL.createObjectURL/);
   assert.doesNotMatch(studio,/fetch\(.*https:|XMLHttpRequest|navigator\.sendBeacon/i);
+});
+
+test("offline CLI writes a valid GLB that preserves semantic names without network",()=>{
+  const folder=mkdtempSync(join(tmpdir(),"casa-tour-glb-"));
+  try{
+    const output=join(folder,"render.glb");
+    const command=spawnSync(process.execPath,[
+      new URL("../tools/plan-to-glb.mjs",import.meta.url).pathname,
+      new URL("../examples/annotated-two-room.json",import.meta.url).pathname,
+      output
+    ],{encoding:"utf8"});
+    assert.equal(command.status,0,command.stderr);
+    const exported=inspectGlb(new Uint8Array(readFileSync(output)));
+    assert.ok(exported.nodes.find(x=>x.name.includes("norte")));
+    assert.ok(exported.nodes.find(x=>x.name.includes("Dormitorio")));
+  }finally{rmSync(folder,{recursive:true,force:true});}
 });
