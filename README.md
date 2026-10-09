@@ -2,7 +2,13 @@
 
 **Producto de visitas tridimensionales para inmobiliarias (B2B) y particulares (B2C).** Publicación por URL o iframe, con planes diferenciados de panoramas 360°, vista Dios, materiales y reconstrucción geométrica revisada.
 
-## Estado actual: primer MVP demostrativo
+## Estado actual: MVP 3D online (desde 2026-10-09)
+
+**[Casa Tour en Cloudflare](https://casa-tour.simondalmasso44.workers.dev/)** · [Tour 3D](https://casa-tour.simondalmasso44.workers.dev/tour/demo) · [Salud de API](https://casa-tour.simondalmasso44.workers.dev/api/v1/health)
+
+Deploy, contratos y pruebas Playwright de escritorio/móvil verificados en producción. [Reporte de despliegue y rollback](docs/DEPLOYMENT.md). Sigue siendo una **demo geométrica**, no un servicio de reconstrucción foto→3D automático.
+
+## Primer MVP demostrativo
 
 Incluye una **maqueta 3D auténtica** de vivienda construida mediante Three.js: pisos, muros, aberturas y muebles como mallas independientes. Puede rotarse, verse desde arriba, recorrerse con WASD, mostrar malla geométrica y cambiar materiales e iluminación. La landing muestra ahora la maqueta 3D directamente, con accesos rápidos a Vista Dios, Planta y una animación ilustrativa de ensamblaje. Los botones de Estar, Dormitorio y Cocina activan recorridos de cámara entre puntos definidos; no son fotografías panorámicas.
 
@@ -16,7 +22,7 @@ Incluye una **maqueta 3D auténtica** de vivienda construida mediante Three.js: 
 - `/api/v1/health`: salud del producto
 - `/api/v1/tours/demo`: manifest del tour
 
-Ejemplo de integración (solo tras desplegar):
+Ejemplo de integración del demo publicado:
 
 ```html
 <iframe
@@ -28,7 +34,7 @@ Ejemplo de integración (solo tras desplegar):
 </iframe>
 ```
 
-El visor carga Three.js desde jsDelivr. Necesita conexión a Internet y un navegador con WebGL. **La URL anterior es el objetivo de despliegue, no una confirmación de despliegue.**
+El visor carga Three.js desde jsDelivr. Necesita conexión a Internet y un navegador con WebGL. **La URL anterior está publicada y verificada en producción desde el 2026-10-09.**
 
 ## Desarrollar y desplegar
 
@@ -59,4 +65,4 @@ En teléfonos, la **maqueta 3D aparece inmediatamente después del titular**. El
 
 Las pruebas de navegador incluyen anchuras de 390 y 320 px, sin overflow horizontal, tests de personalización y capturas reales. Ver [docs/MOBILE_QA.md](docs/MOBILE_QA.md).
 
-El Worker público de Cloudflare observado el 2026-10-09 aún entregaba texto plano (HTTP 200) tanto en `/` como en `/api/v1/health`; **eso NO es este frontend**. El workflow de preview confirmó que faltan `CLOUDFLARE_ACCOUNT_ID` y/o `CLOUDFLARE_API_TOKEN` en Actions secrets. La publicación real continúa pendiente y debe realizarse con staging y rollback.
+Ese mismo día, Cloudflare empezó a servir el frontend real en producción después de pasar por staging. [Ver evidencia de producción](https://github.com/simondalmasso/casa-tour/actions/runs/37991867603). El antiguo Worker era un placeholder de 12 bytes y fue sustituido mediante un release con rollback disponible.
