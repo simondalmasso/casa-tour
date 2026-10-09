@@ -29,7 +29,7 @@ try {
   await page.locator('[data-scene-view="top"]').click();
   await heroFrame.locator('[data-mode="top"][aria-pressed="true"]').waitFor({timeout:10000,state:"attached"});
   await page.locator('[data-scene-view="assembly"]').click();
-  await heroFrame.locator("#view-status").getByText(/ENSAMBLAJE ILUSTRATIVO/).waitFor({timeout:8000});
+  await heroFrame.locator("#view-status").getByText(/ENSAMBLAJE ILUSTRATIVO/).waitFor({state:"attached",timeout:8000});
   await page.screenshot({path:"test-artifacts/home-desktop.png",fullPage:true});
   await page.locator("#explorar").scrollIntoViewIfNeeded();
   await page.locator('[data-tour-view="bedroom"]').click();
