@@ -45,6 +45,7 @@
     /* Phone UI: canvas-first, controls in two short bottom rails.
        Materials panel is an accessible disclosure; nothing covers the model by default. */
     .settings-toggle{display:none}
+    .share-short{display:none}
     @media(max-width:670px){
       #stage{touch-action:pan-y}
       #canvas{touch-action:pan-y}
@@ -53,7 +54,8 @@
       .property-icon{width:28px;height:28px;font-size:15px;flex:0 0 auto}
       .property-card strong{font-size:11px}
       .property-card small{font-size:7px;letter-spacing:.015em}
-      .open-window{padding:12px 9px;min-height:43px;font-size:10px;border-radius:7px}
+      .open-window{padding:12px 9px;min-height:43px;font-size:10px;border-radius:7px;white-space:nowrap;flex-shrink:0}
+      .share-long{display:none}.share-short{display:inline}
       .settings-toggle{
         display:block;pointer-events:auto;right:10px;top:73px;
         font-size:10px;font-weight:800;min-height:40px;
@@ -117,7 +119,7 @@
   <div id="canvas" aria-label="Representación interactiva de un apartamento en 3D"></div>
   <div class="hud topbar">
     <div class="property-card"><div class="property-icon">⌂</div><div><strong>Apartamento estudio</strong><small>CASA TOUR / MODELO DE EJEMPLO</small></div></div>
-    <button class="open-window" id="share" title="Copiar enlace de este tour">Compartir ↗</button>
+    <button class="open-window" id="share" title="Copiar enlace de este tour" aria-label="Copiar enlace del tour"><span class="share-long">Compartir ↗</span><span class="share-short" aria-hidden="true">Enlace ↗</span></button>
   </div>
   <div class="hud status" id="view-status" role="status">MODELO GEOMÉTRICO DEMO · SIN MEDIDAS CERTIFICADAS</div>
   <button type="button" id="settings-toggle" class="hud settings-toggle" aria-controls="viewer-settings" aria-expanded="false" aria-label="Abrir materiales e iluminación">◐ Personalizar</button>
