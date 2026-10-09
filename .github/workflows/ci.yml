@@ -16,3 +16,5 @@ jobs:
           node-version: 22
       - name: Syntax and API contract tests
         run: npm run validate
+      - name: Offline GenRecon adapter safety tests (no GPU/network)
+        run: python3 -m unittest discover -s tests -p "*_test.py" -v
