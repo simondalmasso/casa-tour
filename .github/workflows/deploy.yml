@@ -10,77 +10,102 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  production:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 20
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      PRODUCTION_URL: https://casa-tour.simondalmasso44.workers.dev
+      LIVE: https://casa-tour.simondalmasso44.workers.dev
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Verify release source
+      - name: Test application, geometry compiler and restricted research runner
         run: |
           set -euo pipefail
           npm run validate
+          python3 -m unittest discover -s tests -p "*_test.py" -v
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           test -n "$CLOUDFLARE_API_TOKEN"
-      - name: Record current version for exact rollback
+          test -f public/studio-shell.txt
+          test -f public/glb-export.js
+      - name: Verify existing production Worker and capture active version
         id: previous
         run: |
           set -euo pipefail
-          npx --yes wrangler@4 deployments list --name casa-tour > previous-deployments.txt
-          BEFORE=$(grep -m1 "Version(s):" previous-deployments.txt | grep -Eo '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1)
-          test -n "$BEFORE" || { echo "::error::Cannot determine previous Worker version. Stop."; exit 1; }
-          echo "version=$BEFORE" >> "$GITHUB_OUTPUT"
-          echo "Recorded previous deployment version for rollback"
-      - name: Publish validated Casa Tour to production
+          curl --retry 6 --retry-all-errors --retry-delay 2 -fsSL --max-time 18 "$LIVE/api/v1/health" -o /tmp/before-health.json
+          node -e 'const x=require("/tmp/before-health.json");if(x.ok!==true||x.product!=="casa-tour"||x.reconstruction!=="not_available")process.exit(1)'
+          npx --yes wrangler@4 deployments list --name casa-tour > prior-deployments.txt
+          ACTIVE=$(grep -E 'Version\(s\):[[:space:]]+\(100%\)' prior-deployments.txt | tail -n 1 | grep -Eo '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1)
+          test -n "$ACTIVE" || { echo "::error::Cannot identify active deployed version"; exit 1; }
+          echo "version=$ACTIVE" >> "$GITHUB_OUTPUT"
+          echo "Pre-release active Worker matches expected version $ACTIVE"
+      - name: Publish Studio to production
         id: deploy
         run: |
           set -euo pipefail
           npx --yes wrangler@4 deploy --name casa-tour --strict --message "Casa Tour guarded manual release from GitHub main"
-      - name: Validate production API and published web assets
+      - name: Wait for globally consistent new Worker, HTML and JS assets
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 20); do
-            if curl -fsSL --max-time 12 "$PRODUCTION_URL/api/v1/health" -o health.json; then
-              if node -e 'const fs=require("fs");const o=JSON.parse(fs.readFileSync("health.json","utf8"));if(o.ok!==true||o.product!=="casa-tour"||o.reconstruction!=="not_available")process.exit(1)'; then
+          # Cloudflare may serve the previous HTML briefly after the new API appears.
+          # Verify content of ALL routes together, twice consecutively, not just a 200.
+          stable=0
+          for attempt in $(seq 1 36); do
+            Q="ct_release=$GITHUB_SHA&check=$attempt"
+            OK=true
+            curl -fsSL --max-time 12 "$LIVE/api/v1/health?$Q" -o /tmp/new-health.json || OK=false
+            curl -fsSL --max-time 12 "$LIVE/?$Q" -o /tmp/home.html || OK=false
+            curl -fsSL --max-time 12 "$LIVE/studio?$Q" -o /tmp/studio.html || OK=false
+            curl -fsSL --max-time 12 "$LIVE/embed/demo?$Q" -o /tmp/embed.html || OK=false
+            curl -fsSL --max-time 12 "$LIVE/glb-export.js?$Q" -o /tmp/export.js || OK=false
+            if [ "$OK" = true ] &&
+               node -e 'const x=require("/tmp/new-health.json");if(x.ok!==true||x.product!=="casa-tour"||x.reconstruction!=="not_available")process.exit(1)' &&
+               grep -q 'href="/studio"' /tmp/home.html &&
+               grep -q 'id="plan-editor"' /tmp/studio.html &&
+               grep -q 'id="model-file"' /tmp/studio.html &&
+               grep -q 'data-room="kitchen"' /tmp/embed.html &&
+               grep -q 'createGlb' /tmp/export.js; then
+              stable=$((stable+1))
+              echo "All production paths match new release, consistency pass $stable/2 (attempt $attempt)"
+              if [ "$stable" -ge 2 ]; then
+                echo "Studio production HTTP GREEN"
                 break
               fi
+            else
+              stable=0
+              echo "Production propagation incomplete at attempt $attempt/36"
             fi
-            if [ "$attempt" -eq 20 ]; then echo "::error::Production API health failed"; exit 1; fi
-            sleep 3
+            if [ "$attempt" -eq 36 ]; then
+              echo "::error::New Studio assets failed consistency gate within 3+ min"
+              exit 1
+            fi
+            sleep 5
           done
-          curl -fsSL --max-time 20 "$PRODUCTION_URL/" -o index.html
-          curl -fsSL --max-time 20 "$PRODUCTION_URL/embed/demo" -o embed.html
-          curl -fsSL --max-time 20 "$PRODUCTION_URL/mobile.css" -o mobile.css
-          grep -q "hero-model" index.html
-          grep -q "id=\"settings-toggle\"" embed.html
-          grep -q "mobile-first experience" mobile.css -i
-          echo "Production API and static 3D contracts GREEN"
-      - name: Install Playwright and verify real production desktop/mobile
+          # Let regional caches/edge workers converge before browser checks.
+          sleep 12
+      - name: Browser QA - existing tour and new GLB Studio
         env:
-          CASA_TOUR_BASE_URL: ${{ env.PRODUCTION_URL }}
+          CASA_TOUR_BASE_URL: ${{ env.LIVE }}
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium
           node tests/browser-smoke.mjs
-      - name: Rollback automatically if release verification failed
+          node tests/studio-browser-smoke.mjs
+      - name: Revert precisely to recorded previous release on failure
         if: failure() && steps.deploy.outcome == 'success'
         run: |
-          echo "::warning::Production validation failed; rolling back to previous deployed Worker version."
-          npx --yes wrangler@4 rollback "${{ steps.previous.outputs.version }}" --name casa-tour --message "Automatic rollback to recorded prior version: failed live verification"
-      - name: Upload release verification evidence
+          echo "::warning::Release verification failed. Restoring exact previous Worker version."
+          npx --yes wrangler@4 rollback "${{ steps.previous.outputs.version }}" --name casa-tour --message "Revert unsuccessful Casa Tour Studio deployment"
+      - name: Keep release evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: casa-tour-production-validation
+          name: casa-tour-studio-production-qa
           path: |
-            previous-deployments.txt
+            prior-deployments.txt
             test-artifacts/
-            health.json
           retention-days: 7
           if-no-files-found: ignore

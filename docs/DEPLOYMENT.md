@@ -39,3 +39,16 @@ Antes de este release, `wrangler deployments list --name casa-tour` registró:
 ## Próximo bloque real
 
 El siguiente gran hito es el pipeline privado foto→geometría semántica editable (ver [issue #4](https://github.com/simondalmasso/casa-tour/issues/4)). Evitar cobrar por reconstrucción automática mientras no exista una prueba sobre viviendas reales autorizadas.
+
+## Segundo release: Casa Tour Studio 3D (2026-10-09)
+
+- Fuente publicada: rama operativa creada desde `main` SHA `6a5c05b959734fb41fc1cf4f7649547af45785f4`, sin cambios en el código de la aplicación.
+- Versión de Worker **activa verificada**: `a4773364-55e4-459c-94ce-9d9b509bdfa3`. La anterior fue `34b90f9f-e9fd-4ce0-9865-e61cbef0770a`.
+- Staging aislado [GREEN](https://github.com/simondalmasso/casa-tour/actions/runs/37994453201); URL `https://casa-tour-recon-stg-9344ca3d.simondalmasso44.workers.dev/studio`.
+- Release production [GREEN](https://github.com/simondalmasso/casa-tour/actions/runs/37995092708), con **23 pruebas Node, 6 Python, Playwright real** en escritorio/móvil (390/320), exportación, reimportación, seguridad de referencias de foto, y comprobación del tour previo.
+- Endpoints `/`, `/studio`, `/embed/demo`, `/glb-export.js` y `/api/v1/health` verificados en producción. Se esperaron **dos pases completos consecutivos** antes del browser QA para evitar errores por propagación transitoria de Cloudflare.
+- Dos intentos anteriores se bloquearon o revirtieron con seguridad: [guard de selección histórica](https://github.com/simondalmasso/casa-tour/actions/runs/37994798532) y [rollback automático verificado](https://github.com/simondalmasso/casa-tour/actions/runs/37994896529). Ninguno se declaró exitoso.
+- El flujo futuro `.github/workflows/deploy.yml` es **manual**, guarda la versión activa más reciente, prueba la geometría y la UI con Node/Python/Chromium, y ejecuta rollback a la versión exacta anterior si la publicación falla después del deploy.
+- **Sin reconstrucción automática desde fotos ni GPU:** `/studio` compila planos anotados a GLB local; las fotos permanecen en el dispositivo. GenRecon sigue restringido a investigación sin explotación comercial.
+
+Si se requiere reversión de este release por incidentes, verificar primero la versión actual y que no haya despliegues posteriores. El rollback a `34b90f9f-e9fd-4ce0-9865-e61cbef0770a` restauraría el tour original, sin Studio.

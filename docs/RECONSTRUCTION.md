@@ -7,7 +7,7 @@ Actualización: 2026-10-09. Esta documentación distingue código probado, infra
 | Etapa | Estado | Evidencia / limitación |
 | --- | --- | --- |
 | Landing móvil, URL e iframe con Three.js | Publicado y validado | QA de producción en GitHub Actions |
-| Planta anotada a malla 3D semántica GLB | Implementado en `/studio` (fase de integración) | `public/scene-contract.js`, `public/glb-export.js`; JSON/GLB + nodos con procedencia |
+| Planta anotada a malla 3D semántica GLB | **Publicado en `/studio` y verificado en producción** | [Release/QA](https://github.com/simondalmasso/casa-tour/actions/runs/37995092708); `scene-contract.js`, `glb-export.js`; JSON/GLB y procedencia |
 | Vinculación local de fotos de referencia | Implementada en Studio | Se importan imágenes en memoria, se guardan solo etiquetas/IDs; **no hay extracción de geometría** |
 | Inspección de GLB externo | Implementada en Studio | GLTFLoader local; bloquea referencias externas de imágenes/buffers; no certifica escala |
 | Calibración automática de cámaras para fotos | Pendiente | COLMAP/MASt3R/poses, instalación y validación con fotografías autorizadas |

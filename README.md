@@ -38,7 +38,7 @@ El visor carga Three.js desde jsDelivr. Necesita conexión a Internet y un naveg
 
 ## Casa Tour Studio: geometría anotada a GLB
 
-**Ruta experimental:** [`/studio`](https://casa-tour.simondalmasso44.workers.dev/studio) (disponible cuando se publique esta versión). El estudio permite corregir un plano con habitaciones, muros, puertas y ventanas, señalar qué fue inferido o está respaldado por referencias, generar GLB 2.0 con mallas independientes y visualizarlo tanto en desktop como en teléfono. El editor no sube fotos: solo registra IDs y etiquetas locales. También abre archivos GLB autocontenidos generados con otras herramientas.
+**Ruta experimental publicada y verificada:** [`/studio`](https://casa-tour.simondalmasso44.workers.dev/studio) — [CI y Playwright en producción](https://github.com/simondalmasso/casa-tour/actions/runs/37995092708). El estudio permite corregir un plano con habitaciones, muros, puertas y ventanas, señalar qué fue inferido o está respaldado por referencias, generar GLB 2.0 con mallas independientes y visualizarlo tanto en desktop como en teléfono. El editor no sube fotos: solo registra IDs y etiquetas locales. También abre archivos GLB autocontenidos generados con otras herramientas.
 
 Para reproducir sin GPU:
 
@@ -60,7 +60,7 @@ npx wrangler@4 dev
 
 Deploy manual: `npx wrangler@4 deploy`, utilizando credenciales adecuadas del proyecto Cloudflare. `.github/workflows/deploy.yml` requiere `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`; se dispara manualmente para evitar sobrescrituras involuntarias.
 
-Ver [docs/PRODUCT.md](docs/PRODUCT.md) para arquitectura B2B/B2C, evidencias, limitaciones, estrategias de reconstrucción, seguridad y roadmap.
+Ver [docs/PRODUCT.md](docs/PRODUCT.md) para arquitectura B2B/B2C y [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para el release de Studio y su rollback.
 
 ## Movimiento y revisión visual
 
