@@ -350,7 +350,7 @@ window.addEventListener("message",event=>{
 });
 document.getElementById("share").addEventListener("click",async()=>{
   const shareURL=new URL("/tour/demo",location.origin).href;
-  try{await navigator.clipboard.writeText(shareURL);document.getElementById("share").textContent="Enlace copiado ✓";}
+  try{await navigator.clipboard.writeText(shareURL);document.getElementById("share").textContent="Copiado ✓";}
   catch{window.prompt("Compartí esta URL:",shareURL);}
 });
 const pressed=new Set();
